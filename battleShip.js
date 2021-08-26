@@ -23,6 +23,7 @@ const initFreeField = function () {
 
 const printField = function (field) {
   //This function gets two-dimensional array 10x10 and print it with letters and raw id
+
   console.log();
   console.log();
   console.log("\x1b[36m%s\x1b[0m", `     A B C D E F G H J K`);
@@ -36,24 +37,12 @@ const printField = function (field) {
   }
 };
 
-const printField2 = function (field) {
-  let arr = [];
-  console.log();
-  console.log();
-  console.log("\x1b[36m%s\x1b[0m", `     A B C D E F G H J K`);
-  console.log();
-  for (let i = 0; i < fieldSize; i += 1) {
-    for (let j = 0; j < fieldSize; j += 1) {
-      arr.push(field[i][j]);
-    }
-    console.log(`     ${arr.join(" ")}`);
-    arr = [];
-  }
-};
-
-const generateShipData = function (deckCount) {
-  /* This function gets deckCount(int) generates direction and coords for a new ship randomly
-  and does it given the direction so that the coordinates are valid for an empty field. returns them in object {x, y, deckCount} */
+const generateShipData = function (numberOfSections) {
+  /* 
+  Takes the number of decks for a future ship (int), generates direction and coords for the new ship randomly
+  and does it given the direction so that the coordinates are valid for an empty field. 
+  returns them in object { x (int), y(int), shipDirection (str) deckCount(int) } 
+  */
 
   const directions = ["horizontal", "vertical"];
   const rand = Math.floor(Math.random() * directions.length);
@@ -61,30 +50,30 @@ const generateShipData = function (deckCount) {
   let x = null;
   let y = null;
   if (shipDirection === "horizontal") {
-    x = Math.floor(Math.random() * (fieldSize - (deckCount + 2)));
+    x = Math.floor(Math.random() * (fieldSize - (numberOfSections + 2)));
     y = Math.floor(Math.random() * fieldSize);
   } else if (shipDirection === "vertical") {
     x = Math.floor(Math.random() * fieldSize);
-    y = Math.floor(Math.random() * (fieldSize - (deckCount + 2)));
+    y = Math.floor(Math.random() * (fieldSize - (numberOfSections + 2)));
   }
-  return { x, y, shipDirection, deckCount };
+  return { x, y, shipDirection, numberOfSections };
 };
 
 const isPlaceFree = function (shipData, field) {
   // This function gets coord genereted by generateShipData() and check that the chosen place is free from another ships
   // returns true or false
 
-  const { x, y, shipDirection, deckCount } = shipData;
-  console.log(x, y, shipDirection, deckCount);
+  const { x, y, shipDirection, numberOfSections } = shipData;
+  console.log(x, y, shipDirection, numberOfSections);
   let isValid = true;
   if (shipDirection === "horizontal") {
-    for (let i = x; i < x + deckCount; i += 1) {
+    for (let i = x; i < x + numberOfSections; i += 1) {
       if (field[y][i] != 0) {
         isValid = false;
       }
     }
   } else if (shipDirection === "vertical") {
-    for (let i = y; i < y + deckCount; i += 1) {
+    for (let i = y; i < y + numberOfSections; i += 1) {
       if (field[i][x]) {
         isValid = false;
       }
@@ -95,15 +84,20 @@ const isPlaceFree = function (shipData, field) {
 };
 
 const placeShip = function (shipData, field) {
+/* 
+Takes object with ship data {x coord (int), y coord (int), direction (str), count of decks (int)}, 
+two-dimensional array with actual status for each coord (int)
+Returns new two-dimensional array with placed ship data
+ */
+
   const fieldAfterPlacement = field;
-  const { x, y, shipDirection, deckCount } = shipData;
-  //console.log(x, y, shipDirection, deckCount);
+  const { x, y, shipDirection, numberOfSections } = shipData;
   if (shipDirection === "horizontal") {
-    for (let i = x; i < x + deckCount; i += 1) {
+    for (let i = x; i < x + numberOfSections; i += 1) {
       fieldAfterPlacement[y][i] = aliveDeck;
     }
   } else if (shipDirection === "vertical") {
-    for (let i = y; i < y + deckCount; i += 1) {
+    for (let i = y; i < y + numberOfSections; i += 1) {
       fieldAfterPlacement[i][x] = aliveDeck;
     }
   }
@@ -112,6 +106,12 @@ const placeShip = function (shipData, field) {
 };
 
 const placeAllShipsPC = function (field) {
+/* 
+Takes a two-dimensional array (int) 
+filled with 0 Sets each ship in the fleet step by step from largest to smallest 
+Returns a new two-dimensional array with spaced ships filled with 1
+ */
+
   let fieldAfterPlacement = field;
   let count = 0;
   while (count < fleet.length) {
@@ -130,9 +130,5 @@ const placeAllShipsPC = function (field) {
 
 let userField = initFreeField();
 printField(userField);
-/* const shipData = generateShipData(4);
-console.log(isPlaceFree(shipData, userField));
-userField = placeShip(shipData, userField); */
 userField = placeAllShipsPC(userField);
 printField(userField);
-//printField2(userField);
