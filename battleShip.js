@@ -5,7 +5,7 @@ const freePlace = 0;
 const aliveDeck = 1;
 const wreckedDeck = 2;
 const deadShipDeck = 3;
-const alreadyShot = "*";
+const alreadyShot = 4;
 const fleet = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1];
 
 const initFreeField = function () {
@@ -83,49 +83,90 @@ const isPlaceFree = function (shipData, field) {
   return isValid;
 };
 
+const isShipNearBorder = function (shipData, field) {
+  const { x, y, shipDirection, numberOfSections } = shipData;
+  const lastSectionCoordX = x + numberOfSections;
+  const lastSectionCoordY = y + numberOfSections;
+
+  if (shipDirection === "horizontal") {
+    if (x === 0 || y === 0 || lastSectionCoordX === fieldSize - 1 || y === 9) {
+      console.log("adjacent to the edge of the field");
+      return true;
+    } else {
+      console.log("don't adjacent to the edge of the field");
+      return false;
+    }
+  } else if (shipDirection === "vertical") {
+    if (x === 0 || y === 0 || lastSectionCoordY === fieldSize - 1 || x === 9) {
+      console.log("adjacent to the edge of the field");
+      return true;
+    } else {
+      console.log("don't adjacent to the edge of the field");
+      return false;
+    }
+  }
+};
+
+const isCrossedWithOther = function (shipData, field) {
+  const { x, y, shipDirection, numberOfSections } = shipData;
+  const lastSectionCoordX = x + numberOfSections;
+  const lastSectionCoordY = y + numberOfSections;
+  const startBoundaryCoordX = x - 1;
+  const finishBoundaryCoordX = lastSectionCoordX + 1;
+  const startBoundaryCoordY = y - 1;
+  const finishBoundaryCoordY = lastSectionCoordY + 1;
+
+  if (isShipNearBorder(shipData, field)) {
+    console.log("Near border. Need another algorithm");
+  } else {
+    console.log("Simple algorithm");
+  }
+};
+
 const placeShip = function (shipData, field) {
-/* 
+  /* 
 Takes object with ship data {x coord (int), y coord (int), direction (str), count of decks (int)}, 
 two-dimensional array with actual status for each coord (int)
 Returns new two-dimensional array with placed ship data
  */
 
-  const fieldAfterPlacement = field;
+  const fieldWithNewShip = field;
   const { x, y, shipDirection, numberOfSections } = shipData;
   if (shipDirection === "horizontal") {
     for (let i = x; i < x + numberOfSections; i += 1) {
-      fieldAfterPlacement[y][i] = aliveDeck;
+      fieldWithNewShip[y][i] = aliveDeck;
     }
   } else if (shipDirection === "vertical") {
     for (let i = y; i < y + numberOfSections; i += 1) {
-      fieldAfterPlacement[i][x] = aliveDeck;
+      fieldWithNewShip[i][x] = aliveDeck;
     }
   }
-  console.table(fieldAfterPlacement);
-  return fieldAfterPlacement;
+  console.table(fieldWithNewShip);
+  return fieldWithNewShip;
 };
 
 const placeAllShipsPC = function (field) {
-/* 
+  /* 
 Takes a two-dimensional array (int) 
 filled with 0 Sets each ship in the fleet step by step from largest to smallest 
 Returns a new two-dimensional array with spaced ships filled with 1
  */
 
-  let fieldAfterPlacement = field;
+  let fieldWithNewShips = field;
   let count = 0;
   while (count < fleet.length) {
-    const obj = generateShipData(fleet[count]);
-    console.log(obj);
-    if (isPlaceFree(obj, fieldAfterPlacement)) {
+    const shipData = generateShipData(fleet[count]);
+    console.log(shipData);
+    if (isPlaceFree(shipData, fieldWithNewShips)) {
       console.log("iteration", count);
-      fieldAfterPlacement = placeShip(obj, fieldAfterPlacement);
+      isShipNearBorder(shipData, fieldWithNewShips);
+      fieldWithNewShips = placeShip(shipData, fieldWithNewShips);
       count += 1;
     } else {
       continue;
     }
   }
-  return fieldAfterPlacement;
+  return fieldWithNewShips;
 };
 
 let userField = initFreeField();
