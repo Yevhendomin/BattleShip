@@ -119,7 +119,25 @@ const isCrossedWithOther = function (shipData, field) {
   if (isShipNearBorder(shipData, field)) {
     console.log("Near border. Need another algorithm");
   } else {
-    console.log("Simple algorithm");
+    if (shipDirection === "horizontal") {
+      for (let i = startBoundaryCoordX; i < finishBoundaryCoordX + 1; i += 1) {
+        if (field[y - 1][i] != 0 || field[y+1][i] != 0 || field[y][i] != 0) {
+          console.log("CROSS");
+          return true;
+        } else {
+          return false;
+        }
+      }
+    } else if (shipDirection === "vertical") {
+      for (let i = startBoundaryCoordY; i < finishBoundaryCoordY + 1; i += 1) {
+        if (field[i][x-1] != 0 || field[i][x+1] != 0 || field[i][x] != 0) {
+          console.log("CROSS");
+          return true;
+        } else {
+          return false;
+        }
+      }
+    }
   }
 };
 
@@ -159,7 +177,9 @@ Returns a new two-dimensional array with spaced ships filled with 1
     console.log(shipData);
     if (isPlaceFree(shipData, fieldWithNewShips)) {
       console.log("iteration", count);
-      isShipNearBorder(shipData, fieldWithNewShips);
+      if(isCrossedWithOther(shipData, fieldWithNewShips)){
+        continue;
+      };
       fieldWithNewShips = placeShip(shipData, fieldWithNewShips);
       count += 1;
     } else {
