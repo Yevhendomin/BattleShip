@@ -121,7 +121,7 @@ const isCrossedWithOther = function (shipData, field) {
   } else {
     if (shipDirection === "horizontal") {
       for (let i = startBoundaryCoordX; i < finishBoundaryCoordX + 1; i += 1) {
-        if (field[y - 1][i] != 0 || field[y+1][i] != 0 || field[y][i] != 0) {
+        if (field[y - 1][i] != 0 || field[y + 1][i] != 0 || field[y][i] != 0) {
           console.log("CROSS");
           return true;
         } else {
@@ -130,7 +130,7 @@ const isCrossedWithOther = function (shipData, field) {
       }
     } else if (shipDirection === "vertical") {
       for (let i = startBoundaryCoordY; i < finishBoundaryCoordY + 1; i += 1) {
-        if (field[i][x-1] != 0 || field[i][x+1] != 0 || field[i][x] != 0) {
+        if (field[i][x - 1] != 0 || field[i][x + 1] != 0 || field[i][x] != 0) {
           console.log("CROSS");
           return true;
         } else {
@@ -141,6 +141,46 @@ const isCrossedWithOther = function (shipData, field) {
   }
 };
 
+const checkBlocksAround = function (shipData, field) {
+  const { x, y, shipDirection, numberOfSections } = shipData;
+  let leftFromX = x;
+  let rigthFromX = x;
+  let topFromY = y;
+  let bottomFromY = y;
+  if (shipDirection === "horizontal") {
+    if (isShipNearBorder(shipData, field)) {
+    } else {
+      leftFromX = x - 1;
+      rigthFromX = x + 2 + numberOfSections;
+      topFromY = y - 1;
+      bottomFromY = y + 2;
+      for (let i = leftFromX; i < rigthFromX; i++) {
+        for (let j = topFromY; j < bottomFromY; j++) {
+          if (field[i][j] != 0) {
+            console.log("There is the ship neaer here");
+            return false;
+          }
+        }
+      }
+    }
+  } else if (shipDirection === "vertical") {
+    if (isShipNearBorder(shipData, field)) {
+    } else {
+      leftFromX = x - 1;
+      rigthFromX = x + 2;
+      topFromY = y - 1;
+      bottomFromY = y + 2 + numberOfSections;
+      for (let i = leftFromX; i < rigthFromX; i++) {
+        for (let j = topFromY; j < bottomFromY; j++) {
+          if (field[i][j] != 0) {
+            console.log("There is the ship neaer here");
+            return false;
+          }
+        }
+      }
+    }
+  }
+};
 const placeShip = function (shipData, field) {
   /* 
 Takes object with ship data {x coord (int), y coord (int), direction (str), count of decks (int)}, 
@@ -177,9 +217,12 @@ Returns a new two-dimensional array with spaced ships filled with 1
     console.log(shipData);
     if (isPlaceFree(shipData, fieldWithNewShips)) {
       console.log("iteration", count);
-      if(isCrossedWithOther(shipData, fieldWithNewShips)){
+      if (
+        isCrossedWithOther(shipData, fieldWithNewShips) &&
+        checkBlocksAround(shipData, fieldWithNewShips)
+      ) {
         continue;
-      };
+      }
       fieldWithNewShips = placeShip(shipData, fieldWithNewShips);
       count += 1;
     } else {
