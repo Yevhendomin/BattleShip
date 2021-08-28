@@ -107,7 +107,61 @@ const isShipNearBorder = function (shipData, field) {
   }
 };
 
-const isCrossedWithOther = function (shipData, field) {
+const possitionOfShip = function(shipData, field){
+  const { x, y, shipDirection, numberOfSections } = shipData;
+  if(shipDirection === 'horizontal'){
+    if(x === 0 && y === 0){
+      return 'top left';
+    }
+    if(x != 0 && y === 0 && x !=  fieldSize - numberOfSections){
+      return 'top';
+    }
+    if(y === 0  && x === fieldSize - numberOfSections){
+      return 'top rigth';
+    }
+    if(x === 0 && y != 0 && y != fieldSize - 1){
+      return 'left'
+    }
+    if(x === 0 && y === fieldSize - 1){
+      return 'bottom left';
+    }
+    if(x != 0 && x != fieldSize - numberOfSections && y === fieldSize - 1){
+      return 'bottom';
+    }
+    if(x === fieldSize - numberOfSections && y === fieldSize - 1){
+      return 'bottom rigth';
+    }
+    if(x === fieldSize - numberOfSections && y != 0 && y != fieldSize - 1){
+      return 'rigth';
+    }
+  }else if(shipDirection === 'vertical'){
+    if(x === 0 && y === 0){
+      return 'top left';
+    }
+    if(x != 0 && y === 0 && y !=  fieldSize - numberOfSections){
+      return 'top';
+    }
+    if(y === 0  && x === fieldSize - numberOfSections){
+      return 'top rigth';
+    }
+    if(x === 0 && y != 0 && y != fieldSize - numberOfSections){
+      return 'left'
+    }
+    if(x === 0 && y === fieldSize - numberOfSections){
+      return 'bottom left';
+    }
+    if(x != 0 && x != fieldSize - 1 && y === fieldSize - numberOfSections){
+      return 'bottom';
+    }
+    if(x === fieldSize - 1 && y === fieldSize - numberOfSections){
+      return 'bottom rigth';
+    }
+    if(x === fieldSize - 1 && y != 0 && y != fieldSize - numberOfSections){
+      return 'rigth';
+    }
+  }
+}
+/* const isCrossedWithOther = function (shipData, field) {
   const { x, y, shipDirection, numberOfSections } = shipData;
   const lastSectionCoordX = x + numberOfSections;
   const lastSectionCoordY = y + numberOfSections;
@@ -139,7 +193,7 @@ const isCrossedWithOther = function (shipData, field) {
       }
     }
   }
-};
+}; */
 
 const checkBlocksAround = function (shipData, field) {
   const { x, y, shipDirection, numberOfSections } = shipData;
@@ -149,6 +203,14 @@ const checkBlocksAround = function (shipData, field) {
   let bottomFromY = y;
   if (shipDirection === "horizontal") {
     if (isShipNearBorder(shipData, field)) {
+switch(possitionOfShip(shipData, field)){
+  case 'top left':
+
+  break;
+  case 'left':
+
+  break;
+}
     } else {
       leftFromX = x - 1;
       rigthFromX = x + 2 + numberOfSections;
@@ -218,7 +280,6 @@ Returns a new two-dimensional array with spaced ships filled with 1
     if (isPlaceFree(shipData, fieldWithNewShips)) {
       console.log("iteration", count);
       if (
-        isCrossedWithOther(shipData, fieldWithNewShips) &&
         checkBlocksAround(shipData, fieldWithNewShips)
       ) {
         continue;
