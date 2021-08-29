@@ -59,7 +59,10 @@ const generateShipData = function (numberOfSections) {
   return { x, y, shipDirection, numberOfSections };
 };
 
-const isPlaceFree = function (shipData, field) {
+const checkAroundV2 = function(shipData, field){
+  const { x, y, shipDirection, numberOfSections } = shipData;
+}
+/* const isPlaceFree = function (shipData, field) {
   // This function gets coord genereted by generateShipData() and check that the chosen place is free from another ships
   // returns true or false
 
@@ -81,9 +84,9 @@ const isPlaceFree = function (shipData, field) {
   }
   console.log(isValid);
   return isValid;
-};
+}; */
 
-const isShipNearBorder = function (shipData, field) {
+/* const isShipNearBorder = function (shipData, field) {
   const { x, y, shipDirection, numberOfSections } = shipData;
   const lastSectionCoordX = x + numberOfSections;
   const lastSectionCoordY = y + numberOfSections;
@@ -105,62 +108,62 @@ const isShipNearBorder = function (shipData, field) {
       return false;
     }
   }
-};
+}; */
 
-const possitionOfShip = function(shipData, field){
+/* const possitionOfShip = function (shipData, field) {
   const { x, y, shipDirection, numberOfSections } = shipData;
-  if(shipDirection === 'horizontal'){
-    if(x === 0 && y === 0){
-      return 'top left';
+  if (shipDirection === "horizontal") {
+    if (x === 0 && y === 0) {
+      return "top left";
     }
-    if(x != 0 && y === 0 && x !=  fieldSize - numberOfSections){
-      return 'top';
+    if (x != 0 && y === 0 && x != fieldSize - numberOfSections) {
+      return "top";
     }
-    if(y === 0  && x === fieldSize - numberOfSections){
-      return 'top rigth';
+    if (y === 0 && x === fieldSize - numberOfSections) {
+      return "top rigth";
     }
-    if(x === 0 && y != 0 && y != fieldSize - 1){
-      return 'left'
+    if (x === 0 && y != 0 && y != fieldSize - 1) {
+      return "left";
     }
-    if(x === 0 && y === fieldSize - 1){
-      return 'bottom left';
+    if (x === 0 && y === fieldSize - 1) {
+      return "bottom left";
     }
-    if(x != 0 && x != fieldSize - numberOfSections && y === fieldSize - 1){
-      return 'bottom';
+    if (x != 0 && x != fieldSize - numberOfSections && y === fieldSize - 1) {
+      return "bottom";
     }
-    if(x === fieldSize - numberOfSections && y === fieldSize - 1){
-      return 'bottom rigth';
+    if (x === fieldSize - numberOfSections && y === fieldSize - 1) {
+      return "bottom rigth";
     }
-    if(x === fieldSize - numberOfSections && y != 0 && y != fieldSize - 1){
-      return 'rigth';
+    if (x === fieldSize - numberOfSections && y != 0 && y != fieldSize - 1) {
+      return "rigth";
     }
-  }else if(shipDirection === 'vertical'){
-    if(x === 0 && y === 0){
-      return 'top left';
+  } else if (shipDirection === "vertical") {
+    if (x === 0 && y === 0) {
+      return "top left";
     }
-    if(x != 0 && y === 0 && y !=  fieldSize - numberOfSections){
-      return 'top';
+    if (x != 0 && y === 0 && y != fieldSize - numberOfSections) {
+      return "top";
     }
-    if(y === 0  && x === fieldSize - numberOfSections){
-      return 'top rigth';
+    if (y === 0 && x === fieldSize - numberOfSections) {
+      return "top rigth";
     }
-    if(x === 0 && y != 0 && y != fieldSize - numberOfSections){
-      return 'left'
+    if (x === 0 && y != 0 && y != fieldSize - numberOfSections) {
+      return "left";
     }
-    if(x === 0 && y === fieldSize - numberOfSections){
-      return 'bottom left';
+    if (x === 0 && y === fieldSize - numberOfSections) {
+      return "bottom left";
     }
-    if(x != 0 && x != fieldSize - 1 && y === fieldSize - numberOfSections){
-      return 'bottom';
+    if (x != 0 && x != fieldSize - 1 && y === fieldSize - numberOfSections) {
+      return "bottom";
     }
-    if(x === fieldSize - 1 && y === fieldSize - numberOfSections){
-      return 'bottom rigth';
+    if (x === fieldSize - 1 && y === fieldSize - numberOfSections) {
+      return "bottom rigth";
     }
-    if(x === fieldSize - 1 && y != 0 && y != fieldSize - numberOfSections){
-      return 'rigth';
+    if (x === fieldSize - 1 && y != 0 && y != fieldSize - numberOfSections) {
+      return "rigth";
     }
   }
-}
+}; */
 /* const isCrossedWithOther = function (shipData, field) {
   const { x, y, shipDirection, numberOfSections } = shipData;
   const lastSectionCoordX = x + numberOfSections;
@@ -195,22 +198,70 @@ const possitionOfShip = function(shipData, field){
   }
 }; */
 
-const checkBlocksAround = function (shipData, field) {
+/* const checkBlocksAround = function (shipData, field) {
   const { x, y, shipDirection, numberOfSections } = shipData;
   let leftFromX = x;
-  let rigthFromX = x;
+  let rigthFromX = x + numberOfSections + 1;
   let topFromY = y;
   let bottomFromY = y;
   if (shipDirection === "horizontal") {
     if (isShipNearBorder(shipData, field)) {
-switch(possitionOfShip(shipData, field)){
-  case 'top left':
-
-  break;
-  case 'left':
-
-  break;
-}
+      switch (possitionOfShip(shipData, field)) {
+        case "top left":
+          console.log('top left');
+          rigthFromX = x + numberOfSections + 1;
+          bottomFromY = y + 1;
+          for (let i = x; i <= rigthFromX; i++) {
+            if (field[bottomFromY][i] != 0) {
+              return true;
+            }
+            if (field[y][rigthFromX] != 0) {
+              return true;
+            }
+            field[i][bottomFromY] = '#';
+            field[y][rigthFromX] = '#';
+          }
+          break;
+        case "left":
+          console.log('left');
+          rigthFromX = x + numberOfSections + 1;
+          topFromY = y - 1;
+          bottomFromY = y + 1;
+          for(let i = x; i < rigthFromX; i ++){
+            for(let j = topFromY; j <= bottomFromY; j ++){
+              if(field[j][i] != 0){
+                return true;
+              }
+              field[j][i] = '#';
+            }
+          }
+          break;
+        case "bottom left":
+          console.log('bottom');
+          rigthFromX = x + numberOfSections + 1;
+          topFromY = y - 1;
+          for(let i = x; i <= rigthFromX; i ++){
+            field[topFromY][i] = '#';
+            if(field[topFromY][i] != 0){
+              return true;
+            }
+            if(field[y][rigthFromX] != 0){
+              return true;
+            }
+          }
+          
+          break;
+        case "top rigth":
+          break;
+        case "rigth":
+          break;
+        case "bottom rigth":
+          break;
+        case "top":
+          break;
+        case "bottom":
+          break;
+      }
     } else {
       leftFromX = x - 1;
       rigthFromX = x + 2 + numberOfSections;
@@ -227,6 +278,24 @@ switch(possitionOfShip(shipData, field)){
     }
   } else if (shipDirection === "vertical") {
     if (isShipNearBorder(shipData, field)) {
+      switch (possitionOfShip(shipData, field)) {
+        case "top left":
+          break;
+        case "left":
+          break;
+        case "bottom left":
+          break;
+        case "top rigth":
+          break;
+        case "rigth":
+          break;
+        case "bottom rigth":
+          break;
+        case "top":
+          break;
+        case "bottom":
+          break;
+      }
     } else {
       leftFromX = x - 1;
       rigthFromX = x + 2;
@@ -242,7 +311,7 @@ switch(possitionOfShip(shipData, field)){
       }
     }
   }
-};
+}; */
 const placeShip = function (shipData, field) {
   /* 
 Takes object with ship data {x coord (int), y coord (int), direction (str), count of decks (int)}, 
@@ -279,9 +348,7 @@ Returns a new two-dimensional array with spaced ships filled with 1
     console.log(shipData);
     if (isPlaceFree(shipData, fieldWithNewShips)) {
       console.log("iteration", count);
-      if (
-        checkBlocksAround(shipData, fieldWithNewShips)
-      ) {
+      if (checkBlocksAround(shipData, fieldWithNewShips)) {
         continue;
       }
       fieldWithNewShips = placeShip(shipData, fieldWithNewShips);
@@ -294,6 +361,5 @@ Returns a new two-dimensional array with spaced ships filled with 1
 };
 
 let userField = initFreeField();
-printField(userField);
 userField = placeAllShipsPC(userField);
 printField(userField);
