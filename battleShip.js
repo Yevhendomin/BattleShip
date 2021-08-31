@@ -63,54 +63,62 @@ const getShipCoordsWithAroundBlocks = function (shipData, field) {
   const { x, y, shipDirection, numberOfSections } = shipData;
   const arr = [];
   if (shipDirection === "horizontal") {
-    for(let i = 0; i < numberOfSections + 2; i++){
+    for (let i = 0; i < numberOfSections + 2; i++) {
       arr[i] = new Array();
-      for(let j = 0; j < 3; j++){
-        arr[i].push([ x - 1 + i, y - 1 + j]);
+      for (let j = 0; j < 3; j++) {
+        arr[i].push([x - 1 + i, y - 1 + j]);
       }
     }
-    console.log(arr);
     return arr;
   } else if (shipDirection === "vertical") {
-    for(let i = 0; i < numberOfSections; i++){
+    for (let i = 0; i < 3; i++) {
       arr[i] = new Array();
-      for(let j = 0; j < numberOfSections + 2; j ++){
-        arr[i].push([x - 1 + i, y - 1 + j])
+      for (let j = 0; j < numberOfSections + 2; j++) {
+        arr[i].push([x - 1 + i, y - 1 + j]);
       }
     }
-    console.log(arr);
     return arr;
   }
 };
-const cutOutOfRangeCoords = function (arr, shipData){
+const cutOutOfRangeCoords = function (arr, shipData) {
   const { x, y, shipDirection, numberOfSections } = shipData;
-  const lengthX = arr[0].length;
-  const lengthY = arr.length;
   const temp = [];
 
-  if(shipDirection === 'horizontal'){
-   
-   let coord = [];
-    for(let i = 0; i < numberOfSections + 2; i++){
-      for(let j = 0; j < 3; j++){
+  if (shipDirection === "horizontal") {
+    let coord = [];
+    for (let i = 0; i < numberOfSections + 2; i++) {
+      for (let j = 0; j < 3; j++) {
         const [x_, y_] = arr[i][j];
-        if(x_ >= 0 && x_ <= (fieldSize - 1) && y_ >= 0 && y_ <= (fieldSize - 1)){
+        if (x_ >= 0 && x_ <= fieldSize - 1 && y_ >= 0 && y_ <= fieldSize - 1) {
           temp.push(arr[i][j]);
         }
+      }
     }
-  }
-}else if (shipDirection === 'vertical'){
-    for(let i = 0; i < 3; i++){
-      for(let j = 0; j < numberOfSections + 2; j ++){
-        const[x_, y_] = arr[i][j];
-        if(x_ >= 0 && x_ <= (fieldSize - 1) && y_ >= 0 && y_ <= (fieldSize - 1)){
+  } else if (shipDirection === "vertical") {
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < numberOfSections + 2; j++) {
+        const [x_, y_] = arr[i][j];
+        if (x_ >= 0 && x_ <= fieldSize - 1 && y_ >= 0 && y_ <= fieldSize - 1) {
           temp.push(arr[i][j]);
         }
+      }
     }
+    
   }
   return temp;
-}
 };
+const isPlaceValid = function (shipData, field) {
+  const coordsBefore = getShipCoordsWithAroundBlocks(shipData, field);
+  const cleanCoords = cutOutOfRangeCoords(coordsBefore, shipData);
+  for (let i = 0; i < cleanCoords.length; i++) {
+    const [x, y] = cleanCoords[i];
+    if (field[y][x] != 0) {
+      return false;
+    }
+  }
+  return true;
+};
+
 /* const isPlaceFree = function (shipData, field) {
   // This function gets coord genereted by generateShipData() and check that the chosen place is free from another ships
   // returns true or false
@@ -133,7 +141,7 @@ const cutOutOfRangeCoords = function (arr, shipData){
   }
   console.log(isValid);
   return isValid;
-}; */
+}; */ 
 
 /* const isShipNearBorder = function (shipData, field) {
   const { x, y, shipDirection, numberOfSections } = shipData;
@@ -379,7 +387,6 @@ Returns new two-dimensional array with placed ship data
       fieldWithNewShip[i][x] = aliveDeck;
     }
   }
-  console.table(fieldWithNewShip);
   return fieldWithNewShip;
 };
 
@@ -395,26 +402,26 @@ Returns a new two-dimensional array with spaced ships filled with 1
   while (count < fleet.length) {
     const shipData = generateShipData(fleet[count]);
     console.log(shipData);
-    if (isPlaceFree(shipData, fieldWithNewShips)) {
-      console.log("iteration", count);
-      if (checkBlocksAround(shipData, fieldWithNewShips)) {
-        continue;
-      }
-      fieldWithNewShips = placeShip(shipData, fieldWithNewShips);
-      count += 1;
-    } else {
+    if (!isPlaceValid(shipData, fieldWithNewShips)) {
+      console.log('NOT OK');
       continue;
+    } else {
+      fieldWithNewShips = placeShip(shipData, fieldWithNewShips);
+      console.log('OK');
+      count += 1;
     }
   }
   return fieldWithNewShips;
 };
 
 let userField = initFreeField();
-const shipData = {x: 9, y: 6, shipDirection: 'vertical', numberOfSections: 4};
-const matrix = getShipCoordsWithAroundBlocks(shipData, userField);
+userField = placeAllShipsPC(userField);
+//const shipData = {x: 2, y: 0, shipDirection: 'vertical', numberOfSections: 2};
+//const matrix = getShipCoordsWithAroundBlocks(shipData, userField);
+//console.log(matrix, 'BEFORE');
 //const newMatrix = getShipCoordsWithAroundBlocks({x: 3, y: 3, shipDirection: 'vertical', numberOfSections: 3});
-const inRangeCoords = cutOutOfRangeCoords(matrix, shipData);
-console.log(inRangeCoords);
-userField = placeShip(shipData, userField);
+//const inRangeCoords = cutOutOfRangeCoords(matrix, shipData);
+//console.log(inRangeCoords);
+//userField = placeShip(shipData, userField);
 //userField = placeShip({x: 3, y: 3, shipDirection: 'vertical', numberOfSections: 3}, userField);
 printField(userField);
