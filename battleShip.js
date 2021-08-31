@@ -59,9 +59,58 @@ const generateShipData = function (numberOfSections) {
   return { x, y, shipDirection, numberOfSections };
 };
 
-const checkAroundV2 = function(shipData, field){
+const getShipCoordsWithAroundBlocks = function (shipData, field) {
   const { x, y, shipDirection, numberOfSections } = shipData;
+  const arr = [];
+  if (shipDirection === "horizontal") {
+    for(let i = 0; i < numberOfSections + 2; i++){
+      arr[i] = new Array();
+      for(let j = 0; j < 3; j++){
+        arr[i].push([ x - 1 + i, y - 1 + j]);
+      }
+    }
+    console.log(arr);
+    return arr;
+  } else if (shipDirection === "vertical") {
+    for(let i = 0; i < numberOfSections; i++){
+      arr[i] = new Array();
+      for(let j = 0; j < numberOfSections + 2; j ++){
+        arr[i].push([x - 1 + i, y - 1 + j])
+      }
+    }
+    console.log(arr);
+    return arr;
+  }
+};
+const cutOutOfRangeCoords = function (arr, shipData){
+  const { x, y, shipDirection, numberOfSections } = shipData;
+  const lengthX = arr[0].length;
+  const lengthY = arr.length;
+  const temp = [];
+
+  if(shipDirection === 'horizontal'){
+   
+   let coord = [];
+    for(let i = 0; i < numberOfSections + 2; i++){
+      for(let j = 0; j < 3; j++){
+        const [x_, y_] = arr[i][j];
+        if(x_ >= 0 && x_ <= (fieldSize - 1) && y_ >= 0 && y_ <= (fieldSize - 1)){
+          temp.push(arr[i][j]);
+        }
+    }
+  }
+}else if (shipDirection === 'vertical'){
+    for(let i = 0; i < 3; i++){
+      for(let j = 0; j < numberOfSections + 2; j ++){
+        const[x_, y_] = arr[i][j];
+        if(x_ >= 0 && x_ <= (fieldSize - 1) && y_ >= 0 && y_ <= (fieldSize - 1)){
+          temp.push(arr[i][j]);
+        }
+    }
+  }
+  return temp;
 }
+};
 /* const isPlaceFree = function (shipData, field) {
   // This function gets coord genereted by generateShipData() and check that the chosen place is free from another ships
   // returns true or false
@@ -361,5 +410,11 @@ Returns a new two-dimensional array with spaced ships filled with 1
 };
 
 let userField = initFreeField();
-userField = placeAllShipsPC(userField);
+const shipData = {x: 9, y: 6, shipDirection: 'vertical', numberOfSections: 4};
+const matrix = getShipCoordsWithAroundBlocks(shipData, userField);
+//const newMatrix = getShipCoordsWithAroundBlocks({x: 3, y: 3, shipDirection: 'vertical', numberOfSections: 3});
+const inRangeCoords = cutOutOfRangeCoords(matrix, shipData);
+console.log(inRangeCoords);
+userField = placeShip(shipData, userField);
+//userField = placeShip({x: 3, y: 3, shipDirection: 'vertical', numberOfSections: 3}, userField);
 printField(userField);
