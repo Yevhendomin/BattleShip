@@ -21,19 +21,143 @@ const initFreeField = function () {
   return arr;
 };
 
-const printField = function (field) {
-  //This function gets two-dimensional array 10x10 and print it with letters and raw id
-
-  console.log();
-  console.log();
-  console.log("\x1b[36m%s\x1b[0m", `     A B C D E F G H J K`);
-  console.log();
-  for (let i = 0; i < fieldSize; i += 1) {
-    if (i < fieldSize - 1) {
-      console.log(`${i + 1}    ${field[i].join(" ")}`);
-    } else {
-      console.log(`${i + 1}   ${field[i].join(" ")}`);
+const fieldCopy = function(field){
+  const newField = [];
+  for(let i = 0; i < fieldSize; i ++){
+    newField[i] = new Array();
+    for(let j = 0; j < fieldSize; j++){
+      newField[i][j] = field[i][j];
     }
+  }
+  return newField;
+}
+
+const changeSymbolsForPrind = function (radar, userField) {
+  const radarUI = fieldCopy(radar);
+  const userUI = fieldCopy(userField);
+  for (let i = 0; i < fieldSize; i++) {
+    for (let j = 0; j < fieldSize; j++) {
+      switch (radarUI[i][j]) {
+        case 0:
+          radarUI[i][j] = "|_|";
+          break;
+        case 1:
+          radarUI[i][j] = "|_|";
+          break;
+        case 2:
+          radarUI[i][j] = "|+|";
+          break;
+        case 3:
+          radarUI[i][j] = "|X|";
+          break;
+        case 4:
+          radarUI[i][j] = "|*|";
+      }
+
+      switch (userUI[i][j]) {
+        case 0:
+          userUI[i][j] = "|_|";
+          break;
+        case 1:
+          userUI[i][j] = "|#|";
+          break;
+        case 2:
+          userUI[i][j] = "|+|";
+          break;
+        case 3:
+          userUI[i][j] = "|X|";
+          break;
+        case 4:
+          userUI[i][j] = "*";
+      }
+    }
+  }
+  return { radarUI, userUI };
+};
+
+const printUI = function (uiData) {
+  let firstColum = null;
+  let enemyRow = "";
+  let userRow = "";
+  const { radarUI, userUI } = uiData;
+  const FieldTitle =
+    "                 ENEMY FIELD                                     YOUR FIELD ";
+
+  const letters =
+    "     A   B   C   D   E   F   J   K   L   M           A   B   C   D   E   F   J   K   L   M";
+  const border =
+    "    _______________________________________         _______________________________________";
+  console.log(FieldTitle);
+  console.log("");
+  console.log(letters);
+  console.log(border);
+  for (let i = 0; i < fieldSize; i++) {
+    firstColum = `${i}\t`;
+    enemyRow = radarUI[i].join(" ");
+    userRow = userUI[i].join(" ");
+
+    console.log(`${firstColum}${enemyRow}    ${firstColum}${userRow}`);
+  }
+  console.log(border);
+};
+
+const getFleetSetUpManual = function (field, radar) {
+  let fieldWithNewShips = fieldCopy(field);
+  let newRadar = fieldCopy(radar);
+  const regexpStrX = "ABCDEFJKLM";
+  const regexpY = "0123456789";
+  const regexDir = "01";
+  const direction = ["horizontal", "vertical"];
+  let count = 0;
+  let ui = changeSymbolsForPrind(newRadar, fieldWithNewShips);
+
+
+  while (count < fleet.length) {
+    console.log("");
+    printUI(ui);
+    let x = prompt("Enter coord X: (letter from A to M)");
+    x = x.toUpperCase();
+    const xData = regexpStrX.match(x);
+    x = xData.index;
+
+    if (x === null) {
+      alert("Please Enter letter from A to M!");
+      continue;
+    }
+
+    let y = prompt("Enter coord Y (digit from 0 to 9):");
+    const yData = regexpY.match(y);
+    y = yData.index;
+    if (y === null) {
+      console.log("Please Enter digit from 0 to 9!");
+      continue;
+    }
+
+    let dir = prompt("Please, choose direction: 0 - horizontal, 1 - vertical");
+    dir = regexDir.match(dir);
+    if (dir === null) {
+      console.log("Please choose 0 or 1 only!");
+    }
+    const shipDirection = direction[dir];
+
+    let shipData = {
+      "x": x,
+      "y": y,
+      "shipDirection": shipDirection,
+      "numberOfSections": fleet[count],
+    };
+    console.log("shipData before sending", shipData);
+    if(!isPlaceValid(shipData, fieldWithNewShips)) {
+      alert('Wrong position! Try again!');
+      console.clear();
+      continue;
+      
+    } else {
+      fieldWithNewShips = getShipSetUp(shipData, fieldWithNewShips);
+      count += 1;
+      ui = changeSymbolsForPrind(newRadar, fieldWithNewShips);
+    }
+    console.clear();
   }
 };
 
@@ -59,7 +183,17 @@ const generateShipData = function (numberOfSections) {
   return { x, y, shipDirection, numberOfSections };
 };
 
-const getShipCoordsWithAroundBlocks = function (shipData, field) {
+const getShipCoordMatrix = function (shipData, field) {
+  /*  
+  Takes new ship data object {x -> int, y -> int, shiprDirection -> str, numberOfSections -> int}
+  Accumulates all coords around new ship including ship`s coords
+   Returns array of int with coords. Size of rows and colums depends on the direction of the ship.
+    [
+      [[-1, 0]],[1, 0],[2, 0]]
+      [[1, 0]],[2, 0],[3, 0]]
+      [[2, 0]],[3, 0],[4, 0]]                  
+    ] 
+  */
   const { x, y, shipDirection, numberOfSections } = shipData;
   const arr = [];
   if (shipDirection === "horizontal") {
@@ -80,6 +214,7 @@ const getShipCoordsWithAroundBlocks = function (shipData, field) {
     return arr;
   }
 };
+
 const cutOutOfRangeCoords = function (arr, shipData) {
   const { x, y, shipDirection, numberOfSections } = shipData;
   const temp = [];
@@ -103,12 +238,12 @@ const cutOutOfRangeCoords = function (arr, shipData) {
         }
       }
     }
-    
   }
   return temp;
 };
+
 const isPlaceValid = function (shipData, field) {
-  const coordsBefore = getShipCoordsWithAroundBlocks(shipData, field);
+  const coordsBefore = getShipCoordMatrix(shipData, field);
   const cleanCoords = cutOutOfRangeCoords(coordsBefore, shipData);
   for (let i = 0; i < cleanCoords.length; i++) {
     const [x, y] = cleanCoords[i];
@@ -119,264 +254,14 @@ const isPlaceValid = function (shipData, field) {
   return true;
 };
 
-/* const isPlaceFree = function (shipData, field) {
-  // This function gets coord genereted by generateShipData() and check that the chosen place is free from another ships
-  // returns true or false
-
-  const { x, y, shipDirection, numberOfSections } = shipData;
-  console.log(x, y, shipDirection, numberOfSections);
-  let isValid = true;
-  if (shipDirection === "horizontal") {
-    for (let i = x; i < x + numberOfSections; i += 1) {
-      if (field[y][i] != 0) {
-        isValid = false;
-      }
-    }
-  } else if (shipDirection === "vertical") {
-    for (let i = y; i < y + numberOfSections; i += 1) {
-      if (field[i][x]) {
-        isValid = false;
-      }
-    }
-  }
-  console.log(isValid);
-  return isValid;
-}; */ 
-
-/* const isShipNearBorder = function (shipData, field) {
-  const { x, y, shipDirection, numberOfSections } = shipData;
-  const lastSectionCoordX = x + numberOfSections;
-  const lastSectionCoordY = y + numberOfSections;
-
-  if (shipDirection === "horizontal") {
-    if (x === 0 || y === 0 || lastSectionCoordX === fieldSize - 1 || y === 9) {
-      console.log("adjacent to the edge of the field");
-      return true;
-    } else {
-      console.log("don't adjacent to the edge of the field");
-      return false;
-    }
-  } else if (shipDirection === "vertical") {
-    if (x === 0 || y === 0 || lastSectionCoordY === fieldSize - 1 || x === 9) {
-      console.log("adjacent to the edge of the field");
-      return true;
-    } else {
-      console.log("don't adjacent to the edge of the field");
-      return false;
-    }
-  }
-}; */
-
-/* const possitionOfShip = function (shipData, field) {
-  const { x, y, shipDirection, numberOfSections } = shipData;
-  if (shipDirection === "horizontal") {
-    if (x === 0 && y === 0) {
-      return "top left";
-    }
-    if (x != 0 && y === 0 && x != fieldSize - numberOfSections) {
-      return "top";
-    }
-    if (y === 0 && x === fieldSize - numberOfSections) {
-      return "top rigth";
-    }
-    if (x === 0 && y != 0 && y != fieldSize - 1) {
-      return "left";
-    }
-    if (x === 0 && y === fieldSize - 1) {
-      return "bottom left";
-    }
-    if (x != 0 && x != fieldSize - numberOfSections && y === fieldSize - 1) {
-      return "bottom";
-    }
-    if (x === fieldSize - numberOfSections && y === fieldSize - 1) {
-      return "bottom rigth";
-    }
-    if (x === fieldSize - numberOfSections && y != 0 && y != fieldSize - 1) {
-      return "rigth";
-    }
-  } else if (shipDirection === "vertical") {
-    if (x === 0 && y === 0) {
-      return "top left";
-    }
-    if (x != 0 && y === 0 && y != fieldSize - numberOfSections) {
-      return "top";
-    }
-    if (y === 0 && x === fieldSize - numberOfSections) {
-      return "top rigth";
-    }
-    if (x === 0 && y != 0 && y != fieldSize - numberOfSections) {
-      return "left";
-    }
-    if (x === 0 && y === fieldSize - numberOfSections) {
-      return "bottom left";
-    }
-    if (x != 0 && x != fieldSize - 1 && y === fieldSize - numberOfSections) {
-      return "bottom";
-    }
-    if (x === fieldSize - 1 && y === fieldSize - numberOfSections) {
-      return "bottom rigth";
-    }
-    if (x === fieldSize - 1 && y != 0 && y != fieldSize - numberOfSections) {
-      return "rigth";
-    }
-  }
-}; */
-/* const isCrossedWithOther = function (shipData, field) {
-  const { x, y, shipDirection, numberOfSections } = shipData;
-  const lastSectionCoordX = x + numberOfSections;
-  const lastSectionCoordY = y + numberOfSections;
-  const startBoundaryCoordX = x - 1;
-  const finishBoundaryCoordX = lastSectionCoordX + 1;
-  const startBoundaryCoordY = y - 1;
-  const finishBoundaryCoordY = lastSectionCoordY + 1;
-
-  if (isShipNearBorder(shipData, field)) {
-    console.log("Near border. Need another algorithm");
-  } else {
-    if (shipDirection === "horizontal") {
-      for (let i = startBoundaryCoordX; i < finishBoundaryCoordX + 1; i += 1) {
-        if (field[y - 1][i] != 0 || field[y + 1][i] != 0 || field[y][i] != 0) {
-          console.log("CROSS");
-          return true;
-        } else {
-          return false;
-        }
-      }
-    } else if (shipDirection === "vertical") {
-      for (let i = startBoundaryCoordY; i < finishBoundaryCoordY + 1; i += 1) {
-        if (field[i][x - 1] != 0 || field[i][x + 1] != 0 || field[i][x] != 0) {
-          console.log("CROSS");
-          return true;
-        } else {
-          return false;
-        }
-      }
-    }
-  }
-}; */
-
-/* const checkBlocksAround = function (shipData, field) {
-  const { x, y, shipDirection, numberOfSections } = shipData;
-  let leftFromX = x;
-  let rigthFromX = x + numberOfSections + 1;
-  let topFromY = y;
-  let bottomFromY = y;
-  if (shipDirection === "horizontal") {
-    if (isShipNearBorder(shipData, field)) {
-      switch (possitionOfShip(shipData, field)) {
-        case "top left":
-          console.log('top left');
-          rigthFromX = x + numberOfSections + 1;
-          bottomFromY = y + 1;
-          for (let i = x; i <= rigthFromX; i++) {
-            if (field[bottomFromY][i] != 0) {
-              return true;
-            }
-            if (field[y][rigthFromX] != 0) {
-              return true;
-            }
-            field[i][bottomFromY] = '#';
-            field[y][rigthFromX] = '#';
-          }
-          break;
-        case "left":
-          console.log('left');
-          rigthFromX = x + numberOfSections + 1;
-          topFromY = y - 1;
-          bottomFromY = y + 1;
-          for(let i = x; i < rigthFromX; i ++){
-            for(let j = topFromY; j <= bottomFromY; j ++){
-              if(field[j][i] != 0){
-                return true;
-              }
-              field[j][i] = '#';
-            }
-          }
-          break;
-        case "bottom left":
-          console.log('bottom');
-          rigthFromX = x + numberOfSections + 1;
-          topFromY = y - 1;
-          for(let i = x; i <= rigthFromX; i ++){
-            field[topFromY][i] = '#';
-            if(field[topFromY][i] != 0){
-              return true;
-            }
-            if(field[y][rigthFromX] != 0){
-              return true;
-            }
-          }
-          
-          break;
-        case "top rigth":
-          break;
-        case "rigth":
-          break;
-        case "bottom rigth":
-          break;
-        case "top":
-          break;
-        case "bottom":
-          break;
-      }
-    } else {
-      leftFromX = x - 1;
-      rigthFromX = x + 2 + numberOfSections;
-      topFromY = y - 1;
-      bottomFromY = y + 2;
-      for (let i = leftFromX; i < rigthFromX; i++) {
-        for (let j = topFromY; j < bottomFromY; j++) {
-          if (field[i][j] != 0) {
-            console.log("There is the ship neaer here");
-            return false;
-          }
-        }
-      }
-    }
-  } else if (shipDirection === "vertical") {
-    if (isShipNearBorder(shipData, field)) {
-      switch (possitionOfShip(shipData, field)) {
-        case "top left":
-          break;
-        case "left":
-          break;
-        case "bottom left":
-          break;
-        case "top rigth":
-          break;
-        case "rigth":
-          break;
-        case "bottom rigth":
-          break;
-        case "top":
-          break;
-        case "bottom":
-          break;
-      }
-    } else {
-      leftFromX = x - 1;
-      rigthFromX = x + 2;
-      topFromY = y - 1;
-      bottomFromY = y + 2 + numberOfSections;
-      for (let i = leftFromX; i < rigthFromX; i++) {
-        for (let j = topFromY; j < bottomFromY; j++) {
-          if (field[i][j] != 0) {
-            console.log("There is the ship neaer here");
-            return false;
-          }
-        }
-      }
-    }
-  }
-}; */
-const placeShip = function (shipData, field) {
+const getShipSetUp = function (shipData, field) {
   /* 
 Takes object with ship data {x coord (int), y coord (int), direction (str), count of decks (int)}, 
 two-dimensional array with actual status for each coord (int)
 Returns new two-dimensional array with placed ship data
  */
 
-  const fieldWithNewShip = field;
+  const fieldWithNewShip = fieldCopy(field);
   const { x, y, shipDirection, numberOfSections } = shipData;
   if (shipDirection === "horizontal") {
     for (let i = x; i < x + numberOfSections; i += 1) {
@@ -403,25 +288,18 @@ Returns a new two-dimensional array with spaced ships filled with 1
     const shipData = generateShipData(fleet[count]);
     console.log(shipData);
     if (!isPlaceValid(shipData, fieldWithNewShips)) {
-      console.log('NOT OK');
+      console.log("NOT OK");
       continue;
     } else {
-      fieldWithNewShips = placeShip(shipData, fieldWithNewShips);
-      console.log('OK');
+      fieldWithNewShips = getShipSetUp(shipData, fieldWithNewShips);
+      console.log("OK");
       count += 1;
     }
+    console.clear();
   }
   return fieldWithNewShips;
 };
 
 let userField = initFreeField();
-userField = placeAllShipsPC(userField);
-//const shipData = {x: 2, y: 0, shipDirection: 'vertical', numberOfSections: 2};
-//const matrix = getShipCoordsWithAroundBlocks(shipData, userField);
-//console.log(matrix, 'BEFORE');
-//const newMatrix = getShipCoordsWithAroundBlocks({x: 3, y: 3, shipDirection: 'vertical', numberOfSections: 3});
-//const inRangeCoords = cutOutOfRangeCoords(matrix, shipData);
-//console.log(inRangeCoords);
-//userField = placeShip(shipData, userField);
-//userField = placeShip({x: 3, y: 3, shipDirection: 'vertical', numberOfSections: 3}, userField);
-printField(userField);
+let userMap = initFreeField();
+userField = getFleetSetUpManual(userField, userMap);
