@@ -7,34 +7,67 @@ const wreckedDeck = 2;
 const deadShipDeck = 3;
 const alreadyShot = 4;
 const fleet = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1];
+let player = {
+  field: null,
+  radar: null,
+  missedCoord: [],
+  hits: [],
+  target: [],
+  score: null,
+  countOfWreaked: 0,
+  chain: false,
+  isDirectionDefined: false,
+  direction: "",
+};
+let js = {
+  field: null,
+  radar: null,
+  missedCoord: [],
+  hits: [],
+  target: [],
+  score: null,
+  countOfWreaked: 0,
+  chain: false,
+  isDirectionDefined: false,
+  direction: "",
+};
 
+// Returns new arr[][] -> int filled by aliveDeck.
 const initFreeField = function () {
-  //This function  returns initialized two-dimensional array 10x10 filled with 0 (int)
-
   const arr = [];
+
   for (let i = 0; i < fieldSize; i += 1) {
     arr[i] = new Array();
     for (let j = 0; j < fieldSize; j += 1) {
       arr[i][j] = freePlace;
     }
   }
+
   return arr;
 };
 
-const fieldCopy = function(field){
+// Takes arr[][] and returns his copy.
+const getFieldCopy = function (field) {
   const newField = [];
-  for(let i = 0; i < fieldSize; i ++){
-    newField[i] = new Array();
-    for(let j = 0; j < fieldSize; j++){
-      newField[i][j] = field[i][j];
-    }
-  }
-  return newField;
-}
 
-const changeSymbolsForPrind = function (radar, userField) {
-  const radarUI = fieldCopy(radar);
-  const userUI = fieldCopy(userField);
+  for (let i = 0; i < fieldSize; i++) {
+    let newRow = [];
+    newField[i] = newRow;
+    newField[i] = [...field[i]];
+  }
+
+  return newField;
+};
+
+/* 
+  Takes user field and user radar like arr[][] -> int, arr[][] -> int. Copy them.
+  Changes values(int) to symbols(str).
+  Returns { arr[][] -> str, arr[][] -> str }.
+ */
+const changeSymbolsForPrint = function (radar, userField) {
+  const radarUI = getFieldCopy(radar);
+  const userUI = getFieldCopy(userField);
+
   for (let i = 0; i < fieldSize; i++) {
     for (let j = 0; j < fieldSize; j++) {
       switch (radarUI[i][j]) {
@@ -72,9 +105,11 @@ const changeSymbolsForPrind = function (radar, userField) {
       }
     }
   }
+
   return { radarUI, userUI };
 };
 
+// Takes user field and user radar like obj { arr[][] -> str, arr[][] -> str }. Print them.
 const printUI = function (uiData) {
   let firstColum = null;
   let enemyRow = "";
@@ -87,6 +122,7 @@ const printUI = function (uiData) {
     "     A   B   C   D   E   F   J   K   L   M           A   B   C   D   E   F   J   K   L   M";
   const border =
     "    _______________________________________         _______________________________________";
+
   console.log(FieldTitle);
   console.log("");
   console.log(letters);
@@ -95,84 +131,103 @@ const printUI = function (uiData) {
     firstColum = `${i}\t`;
     enemyRow = radarUI[i].join(" ");
     userRow = userUI[i].join(" ");
-
     console.log(`${firstColum}${enemyRow}    ${firstColum}${userRow}`);
   }
   console.log(border);
 };
 
-const getFleetSetUpManual = function (field, radar) {
-  let fieldWithNewShips = fieldCopy(field);
-  let newRadar = fieldCopy(radar);
-  const regexpStrX = "ABCDEFJKLM";
+/* 
+  Takes number of sections for feature ship  -> int.
+  Asks user to input coordinates. Checks if they are valid.
+  Returns obj {x -> int, y -> int, shipDirection - > str, numberOfSections -> int}. 
+*/
+const enterCoordByUser = function (numberOfSections) {
+  const regexpX = "ABCDEFJKLM";
   const regexpY = "0123456789";
-  const regexDir = "01";
-  const direction = ["horizontal", "vertical"];
-  let count = 0;
-  let ui = changeSymbolsForPrind(newRadar, fieldWithNewShips);
+  let x = null;
+  let regExpIndexX = null;
+  let y = null;
+  let regExpIndexY = null;
+  let shipDirection = "horizontal";
+  let loopTrigger = true;
 
-
-  while (count < fleet.length) {
-    console.log("");
-    printUI(ui);
-    let x = prompt("Enter coord X: (letter from A to M)");
-    x = x.toUpperCase();
-    const xData = regexpStrX.match(x);
-    x = xData.index;
-
-    if (x === null) {
-      alert("Please Enter letter from A to M!");
+  while (loopTrigger) {
+    console.log(`Setting up ${numberOfSections} deck ship...`);
+    let str = prompt("Enter coords like a4");
+    if (str === null || str.length != 2) {
+      alert("Wrong coord. Try again");
       continue;
     }
+    let strX = str[0];
+    strX = strX.toUpperCase();
+    regExpIndexX = regexpX.match(strX);
 
-    let y = prompt("Enter coord Y (digit from 0 to 9):");
-    const yData = regexpY.match(y);
-    y = yData.index;
-    if (y === null) {
-      console.log("Please Enter digit from 0 to 9!");
+    if (regExpIndexX === null) {
+      alert("Wrong first coord. Try again");
       continue;
     }
+    x = regExpIndexX["index"];
+    const parseY = str[1];
+    regExpIndexY = regexpY.match(parseY);
 
-    let dir = prompt("Please, choose direction: 0 - horizontal, 1 - vertical");
-    dir = regexDir.match(dir);
-    if (dir === null) {
-      console.log("Please choose 0 or 1 only!");
-    }
-    const shipDirection = direction[dir];
-
-    let shipData = {
-      "x": x,
-      "y": y,
-      "shipDirection": shipDirection,
-      "numberOfSections": fleet[count],
-    };
-    console.log("shipData before sending", shipData);
-    if(!isPlaceValid(shipData, fieldWithNewShips)) {
-      alert('Wrong position! Try again!');
-      console.clear();
+    if (regExpIndexY === null) {
+      alert("Wrong second coord. Try again!");
       continue;
-      
-    } else {
-      fieldWithNewShips = getShipSetUp(shipData, fieldWithNewShips);
-      count += 1;
-      ui = changeSymbolsForPrind(newRadar, fieldWithNewShips);
     }
-    console.clear();
+    y = regExpIndexY["index"];
+
+    if (numberOfSections > 1) {
+      let dir = confirm("OK - horizontal, Cancel - vertical");
+      if (!dir) {
+        shipDirection = "vertical";
+      }
+    }
+    loopTrigger = false;
   }
+
+  return { x, y, shipDirection, numberOfSections };
 };
 
-const generateShipData = function (numberOfSections) {
-  /* 
-  Takes the number of decks for a future ship (int), generates direction and coords for the new ship randomly
-  and does it given the direction so that the coordinates are valid for an empty field. 
-  returns them in object { x (int), y(int), shipDirection (str) deckCount(int) } 
-  */
+const setUpFleetManually = function (field, radar) {
+  let fieldWithNewShips = getFieldCopy(field);
+  let newRadar = getFieldCopy(radar);
+  let count = 0;
+  let ui = null;
 
+  while (count < fleet.length) {
+    ui = changeSymbolsForPrint(newRadar, fieldWithNewShips);
+    console.clear();
+    printUI(ui);
+    let shipData = enterCoordByUser(fleet[count]);
+    if (!isPlaceValid(shipData, fieldWithNewShips)) {
+      alert("Wrong position! Try again!");
+      continue;
+    } else {
+      fieldWithNewShips = setUpShip(shipData, fieldWithNewShips);
+      count += 1;
+      ui = changeSymbolsForPrint(newRadar, fieldWithNewShips);
+      console.clear();
+      printUI(ui);
+    }
+  }
+  alert("You are redy to battle!");
+  console.clear();
+
+  return fieldWithNewShips;
+};
+
+/*  
+  Takes the number of decks for a future ship (int), generates direction and coords for the new ship randomly.
+  Does it given the direction so that the coordinates are valid for an empty field.
+  Returns obj { x -> int, y -> int, shipDirection -> str, deckCount -> int } 
+ */
+const getRandomShipData = function (numberOfSections) {
   const directions = ["horizontal", "vertical"];
   const rand = Math.floor(Math.random() * directions.length);
   const shipDirection = directions[rand];
   let x = null;
   let y = null;
+
   if (shipDirection === "horizontal") {
     x = Math.floor(Math.random() * (fieldSize - (numberOfSections + 2)));
     y = Math.floor(Math.random() * fieldSize);
@@ -180,22 +235,19 @@ const generateShipData = function (numberOfSections) {
     x = Math.floor(Math.random() * fieldSize);
     y = Math.floor(Math.random() * (fieldSize - (numberOfSections + 2)));
   }
+
   return { x, y, shipDirection, numberOfSections };
 };
 
-const getShipCoordMatrix = function (shipData, field) {
-  /*  
+/* 
   Takes new ship data object {x -> int, y -> int, shiprDirection -> str, numberOfSections -> int}
   Accumulates all coords around new ship including ship`s coords
-   Returns array of int with coords. Size of rows and colums depends on the direction of the ship.
-    [
-      [[-1, 0]],[1, 0],[2, 0]]
-      [[1, 0]],[2, 0],[3, 0]]
-      [[2, 0]],[3, 0],[4, 0]]                  
-    ] 
-  */
+  Returns array[][] -> int with coords. Size of rows and colums depends on the direction of the ship. 
+ */
+const getShipCoordMatrix = function (shipData, field) {
   const { x, y, shipDirection, numberOfSections } = shipData;
   const arr = [];
+
   if (shipDirection === "horizontal") {
     for (let i = 0; i < numberOfSections + 2; i++) {
       arr[i] = new Array();
@@ -203,6 +255,7 @@ const getShipCoordMatrix = function (shipData, field) {
         arr[i].push([x - 1 + i, y - 1 + j]);
       }
     }
+
     return arr;
   } else if (shipDirection === "vertical") {
     for (let i = 0; i < 3; i++) {
@@ -211,58 +264,111 @@ const getShipCoordMatrix = function (shipData, field) {
         arr[i].push([x - 1 + i, y - 1 + j]);
       }
     }
+
     return arr;
   }
+
+  return -1;
 };
 
+/* 
+  Takes ship data as obj { x -> int, y -> int, shipDirection -> str, numberOfSections -> int }
+  Checks that the feature ship wont be out of boundaries
+  Returns true if all ok and false if coordinates are not valid
+ */
+const isShipInField = function ({ x, y, shipDirection, numberOfSections }) {
+  switch (shipDirection) {
+    case "horizontal":
+      if (
+        x > fieldSize - numberOfSections ||
+        x < 0 ||
+        y < 0 ||
+        y > fieldSize - 1
+      ) {
+        return false;
+      }
+      return true;
+
+    case "vertical":
+      if (
+        x < 0 ||
+        x > fieldSize - 1 ||
+        y < 0 ||
+        y > fieldSize - numberOfSections
+      ) {
+        return false;
+      }
+      return true;
+  }
+
+  return -1;
+};
+
+/* 
+  Takes coords around the ship including ship`s coords as arr[][] -> int and
+  ship data as obj { x -> int, y -> int, shipDirection -> str, numberOfSections -> int }
+  Checks each coords. If coords in the field adds it to new arr[][] -> int 
+  Returns arr[][] -> int with sibling coords of ship in range of field
+ */
 const cutOutOfRangeCoords = function (arr, shipData) {
   const { x, y, shipDirection, numberOfSections } = shipData;
-  const temp = [];
+  const siblingCoordsInRange = [];
 
   if (shipDirection === "horizontal") {
     let coord = [];
     for (let i = 0; i < numberOfSections + 2; i++) {
       for (let j = 0; j < 3; j++) {
-        const [x_, y_] = arr[i][j];
-        if (x_ >= 0 && x_ <= fieldSize - 1 && y_ >= 0 && y_ <= fieldSize - 1) {
-          temp.push(arr[i][j]);
+        const [X, Y] = arr[i][j];
+        if (X >= 0 && X <= fieldSize - 1 && Y >= 0 && Y <= fieldSize - 1) {
+          siblingCoordsInRange.push(arr[i][j]);
         }
       }
     }
   } else if (shipDirection === "vertical") {
     for (let i = 0; i < 3; i++) {
       for (let j = 0; j < numberOfSections + 2; j++) {
-        const [x_, y_] = arr[i][j];
-        if (x_ >= 0 && x_ <= fieldSize - 1 && y_ >= 0 && y_ <= fieldSize - 1) {
-          temp.push(arr[i][j]);
+        const [X, Y] = arr[i][j];
+        if (X >= 0 && X <= fieldSize - 1 && Y >= 0 && Y <= fieldSize - 1) {
+          siblingCoordsInRange.push(arr[i][j]);
         }
       }
     }
   }
-  return temp;
+
+  return siblingCoordsInRange;
 };
 
+/* 
+  Takes ship data as obj { x -> int, y -> int, shipDirection -> str, numberOfSections -> int }
+  and field as arr[][] -> int. Checks that coords around future ship are free
+  Returns true if all ok and false if coordinates are not valid to place ship
+ */
 const isPlaceValid = function (shipData, field) {
-  const coordsBefore = getShipCoordMatrix(shipData, field);
-  const cleanCoords = cutOutOfRangeCoords(coordsBefore, shipData);
-  for (let i = 0; i < cleanCoords.length; i++) {
-    const [x, y] = cleanCoords[i];
-    if (field[y][x] != 0) {
+  if (!isShipInField(shipData)) {
+    return false;
+  }
+  const siblingCoords = getShipCoordMatrix(shipData, field);
+  const siblingCoordsInRange = cutOutOfRangeCoords(siblingCoords, shipData);
+
+  for (let i = 0; i < siblingCoordsInRange.length; i++) {
+    const [x, y] = siblingCoordsInRange[i];
+    if (field[y][x] != freePlace) {
       return false;
     }
   }
+
   return true;
 };
 
-const getShipSetUp = function (shipData, field) {
-  /* 
-Takes object with ship data {x coord (int), y coord (int), direction (str), count of decks (int)}, 
-two-dimensional array with actual status for each coord (int)
-Returns new two-dimensional array with placed ship data
+/* 
+  Takes ship data obj {x -> int, y -> int, shipDirection -> str, numberOfSections -> int},
+  takes field as arr[][] -> int. Copy field. Sets up new ship filling coords with alivedeck -> int
+  Return new field arr[][] -> int with the ship ready
  */
-
-  const fieldWithNewShip = fieldCopy(field);
+const setUpShip = function (shipData, field) {
+  const fieldWithNewShip = getFieldCopy(field);
   const { x, y, shipDirection, numberOfSections } = shipData;
+
   if (shipDirection === "horizontal") {
     for (let i = x; i < x + numberOfSections; i += 1) {
       fieldWithNewShip[y][i] = aliveDeck;
@@ -272,34 +378,71 @@ Returns new two-dimensional array with placed ship data
       fieldWithNewShip[i][x] = aliveDeck;
     }
   }
+
   return fieldWithNewShip;
 };
 
-const placeAllShipsPC = function (field) {
-  /* 
-Takes a two-dimensional array (int) 
-filled with 0 Sets each ship in the fleet step by step from largest to smallest 
-Returns a new two-dimensional array with spaced ships filled with 1
- */
-
+/* 
+  Takes the free field as arr[][] -> int. Copy him.
+  Placing the fleet on the field step by step from largest to smallest
+  Returns a new field with placed fleet as arr[][] -> int 
+  */
+const setUpFleetAuto = function (field) {
   let fieldWithNewShips = field;
   let count = 0;
+
   while (count < fleet.length) {
-    const shipData = generateShipData(fleet[count]);
-    console.log(shipData);
+    const shipData = getRandomShipData(fleet[count]);
     if (!isPlaceValid(shipData, fieldWithNewShips)) {
-      console.log("NOT OK");
       continue;
     } else {
-      fieldWithNewShips = getShipSetUp(shipData, fieldWithNewShips);
-      console.log("OK");
+      fieldWithNewShips = setUpShip(shipData, fieldWithNewShips);
       count += 1;
     }
     console.clear();
   }
+
   return fieldWithNewShips;
 };
 
-let userField = initFreeField();
-let userMap = initFreeField();
-userField = getFleetSetUpManual(userField, userMap);
+// Takes player data obj and filling properties with starting data
+const initPlayer = function (player) {
+  const copyPlayer = { ...player };
+
+  copyPlayer.field = initFreeField();
+  copyPlayer.radar = initFreeField();
+  copyPlayer.score = fleet.reduce((total, number) => total + number);
+
+  return copyPlayer;
+};
+
+// Takes js data obj and filling properties with starting data
+const initJs = function (js) {
+  const copyJs = { ...js };
+
+  copyJs.field = initFreeField();
+  copyJs.radar = initFreeField();
+  copyJs.score = fleet.reduce((total, number) => total + number);
+
+  return copyJs;
+};
+
+const main = function () {
+  player = initPlayer(player);
+  console.log(player.score);
+  js = initJs(js);
+  let uiData = changeSymbolsForPrint(player.radar, player.field);
+  alert("BEGIN!");
+  if (confirm("Do you want to setup fleet manually?")) {
+    player.field = setUpFleetManually(player.field, player.radar);
+  } else {
+    player.field = setUpFleetAuto(player.field);
+  }
+
+  uiData = changeSymbolsForPrint(player.radar, player.field);
+  printUI(uiData);
+};
+console.log("Loading...");
+setTimeout(function () {
+  main();
+}, 5000);
