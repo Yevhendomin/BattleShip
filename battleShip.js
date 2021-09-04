@@ -8,28 +8,32 @@ const deadShipDeck = 3;
 const alreadyShot = 4;
 const fleet = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1];
 let player = {
+  memory: {
+    missedCoord: [],
+    hits: [],
+    target: [],
+    countOfWreaked: 0,
+    chain: false,
+    isDirectionDefined: false,
+    direction: "",
+  },
   field: null,
   radar: null,
-  missedCoord: [],
-  hits: [],
-  target: [],
   score: null,
-  countOfWreaked: 0,
-  chain: false,
-  isDirectionDefined: false,
-  direction: "",
 };
 let js = {
+  memory: {
+    missedCoord: [],
+    hits: [],
+    target: [],
+    countOfWreaked: 0,
+    chain: false,
+    isDirectionDefined: false,
+    direction: "",
+  },
   field: null,
   radar: null,
-  missedCoord: [],
-  hits: [],
-  target: [],
   score: null,
-  countOfWreaked: 0,
-  chain: false,
-  isDirectionDefined: false,
-  direction: "",
 };
 
 // Returns new arr[][] -> int filled by aliveDeck.
@@ -188,6 +192,12 @@ const enterCoordByUser = function (numberOfSections) {
   return { x, y, shipDirection, numberOfSections };
 };
 
+/* 
+  Takes player`s field as arr[][] -> int and player`s radar as arr[][] ->
+  Gets input from user -> str like 'a4' or 'e0' and cheks if they are valid.
+  Places all player`s fleet. Updates UI when new ship is placed.
+  Returns copy of player`s field with the fleet placed as arr[][] ->
+ */
 const setUpFleetManually = function (field, radar) {
   let fieldWithNewShips = getFieldCopy(field);
   let newRadar = getFieldCopy(radar);
@@ -240,9 +250,42 @@ const getRandomShipData = function (numberOfSections) {
 };
 
 /* 
+  Takes ship data as obj { x -> int, y -> int, shipDirection -> str, numberOfSections -> int }
+  Checks that the feature ship wont be out of boundaries
+  Returns true if all ok and false if coordinates are not valid
+ */
+  const isShipInField = function ({ x, y, shipDirection, numberOfSections }) {
+    switch (shipDirection) {
+      case "horizontal":
+        if (
+          x > fieldSize - numberOfSections ||
+          x < 0 ||
+          y < 0 ||
+          y > fieldSize - 1
+        ) {
+          return false;
+        }
+        return true;
+  
+      case "vertical":
+        if (
+          x < 0 ||
+          x > fieldSize - 1 ||
+          y < 0 ||
+          y > fieldSize - numberOfSections
+        ) {
+          return false;
+        }
+        return true;
+    }
+  
+    return -1;
+  };
+
+/* 
   Takes new ship data object {x -> int, y -> int, shiprDirection -> str, numberOfSections -> int}
-  Accumulates all coords around new ship including ship`s coords
-  Returns array[][] -> int with coords. Size of rows and colums depends on the direction of the ship. 
+  and field as arr[][] -> int. Accumulates all coords around new ship including ship`s coords
+  Returns array[] -> int with coords. 
  */
 const getShipCoordMatrix = function (shipData, field) {
   const { x, y, shipDirection, numberOfSections } = shipData;
@@ -250,21 +293,19 @@ const getShipCoordMatrix = function (shipData, field) {
 
   if (shipDirection === "horizontal") {
     for (let i = 0; i < numberOfSections + 2; i++) {
-      arr[i] = new Array();
       for (let j = 0; j < 3; j++) {
-        arr[i].push([x - 1 + i, y - 1 + j]);
+        arr.push([x - 1 + i, y - 1 + j]);
       }
     }
-
+    console.log('getShipCoordMatrix horizontal return arr: ', arr);
     return arr;
   } else if (shipDirection === "vertical") {
     for (let i = 0; i < 3; i++) {
-      arr[i] = new Array();
       for (let j = 0; j < numberOfSections + 2; j++) {
-        arr[i].push([x - 1 + i, y - 1 + j]);
+        arr.push([x - 1 + i, y - 1 + j]);
       }
     }
-
+    console.log('getShipCoordMatrix vertical return arr: ', arr);
     return arr;
   }
 
@@ -272,75 +313,26 @@ const getShipCoordMatrix = function (shipData, field) {
 };
 
 /* 
-  Takes ship data as obj { x -> int, y -> int, shipDirection -> str, numberOfSections -> int }
-  Checks that the feature ship wont be out of boundaries
-  Returns true if all ok and false if coordinates are not valid
+  Takes coords around the ship including ship`s coords as arr[] -> int and
+  Checks each coords. If coords in the range of field adds them to new arr[] -> int 
+  Returns arr[] -> int with ship`s and sibling coords in the range of field
  */
-const isShipInField = function ({ x, y, shipDirection, numberOfSections }) {
-  switch (shipDirection) {
-    case "horizontal":
-      if (
-        x > fieldSize - numberOfSections ||
-        x < 0 ||
-        y < 0 ||
-        y > fieldSize - 1
-      ) {
-        return false;
-      }
-      return true;
-
-    case "vertical":
-      if (
-        x < 0 ||
-        x > fieldSize - 1 ||
-        y < 0 ||
-        y > fieldSize - numberOfSections
-      ) {
-        return false;
-      }
-      return true;
-  }
-
-  return -1;
-};
-
-/* 
-  Takes coords around the ship including ship`s coords as arr[][] -> int and
-  ship data as obj { x -> int, y -> int, shipDirection -> str, numberOfSections -> int }
-  Checks each coords. If coords in the field adds it to new arr[][] -> int 
-  Returns arr[][] -> int with sibling coords of ship in range of field
- */
-const cutOutOfRangeCoords = function (arr, shipData) {
-  const { x, y, shipDirection, numberOfSections } = shipData;
+const cutOutOfRangeCoords = function (arr) {
   const siblingCoordsInRange = [];
 
-  if (shipDirection === "horizontal") {
-    let coord = [];
-    for (let i = 0; i < numberOfSections + 2; i++) {
-      for (let j = 0; j < 3; j++) {
-        const [X, Y] = arr[i][j];
-        if (X >= 0 && X <= fieldSize - 1 && Y >= 0 && Y <= fieldSize - 1) {
-          siblingCoordsInRange.push(arr[i][j]);
+    for (let i = 0; i < arr.length; i++) {
+        const [x, y] = arr[i];
+        if (x >= 0 && x <= fieldSize - 1 && y >= 0 && y <= fieldSize - 1) {
+          siblingCoordsInRange.push([x, y]);
         }
       }
-    }
-  } else if (shipDirection === "vertical") {
-    for (let i = 0; i < 3; i++) {
-      for (let j = 0; j < numberOfSections + 2; j++) {
-        const [X, Y] = arr[i][j];
-        if (X >= 0 && X <= fieldSize - 1 && Y >= 0 && Y <= fieldSize - 1) {
-          siblingCoordsInRange.push(arr[i][j]);
-        }
-      }
-    }
-  }
 
   return siblingCoordsInRange;
 };
 
 /* 
   Takes ship data as obj { x -> int, y -> int, shipDirection -> str, numberOfSections -> int }
-  and field as arr[][] -> int. Checks that coords around future ship are free
+  and field as arr[][] -> int. Checks that coords around future ship are free and that the coords in range of field
   Returns true if all ok and false if coordinates are not valid to place ship
  */
 const isPlaceValid = function (shipData, field) {
@@ -348,9 +340,10 @@ const isPlaceValid = function (shipData, field) {
     return false;
   }
   const siblingCoords = getShipCoordMatrix(shipData, field);
-  const siblingCoordsInRange = cutOutOfRangeCoords(siblingCoords, shipData);
+  const siblingCoordsInRange = cutOutOfRangeCoords(siblingCoords);
 
   for (let i = 0; i < siblingCoordsInRange.length; i++) {
+    console.log(siblingCoords[i]);
     const [x, y] = siblingCoordsInRange[i];
     if (field[y][x] != freePlace) {
       return false;
