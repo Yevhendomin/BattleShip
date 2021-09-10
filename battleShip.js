@@ -8,15 +8,6 @@ const deadShipDeck = 3;
 const alreadyShot = 4;
 const fleet = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1];
 let player = {
-  memory: {
-    missedCoord: [],
-    hits: [],
-    target: [],
-    countOfWreaked: 0,
-    chain: false,
-    isDirectionDefined: false,
-    direction: "",
-  },
   field: null,
   radar: null,
   score: null,
@@ -146,40 +137,20 @@ const printUI = function (uiData) {
   Returns obj {x -> int, y -> int, shipDirection - > str, numberOfSections -> int}. 
 */
 const enterCoordByUser = function (numberOfSections) {
-  const regexpX = "ABCDEFJKLM";
-  const regexpY = "0123456789";
-  let x = null;
-  let regExpIndexX = null;
-  let y = null;
-  let regExpIndexY = null;
   let shipDirection = "horizontal";
   let loopTrigger = true;
+  let x = null;
+  let y = null;
 
   while (loopTrigger) {
     console.log(`Setting up ${numberOfSections} deck ship...`);
     let str = prompt("Enter coords like a4");
-    if (str === null || str.length != 2) {
-      alert("Wrong coord. Try again");
+    if(getCoordIfInputValid(str)){
+      const arr = getCoordIfInputValid(str);
+      [x, y] = arr;
+    }else{
       continue;
     }
-    let strX = str[0];
-    strX = strX.toUpperCase();
-    regExpIndexX = regexpX.match(strX);
-
-    if (regExpIndexX === null) {
-      alert("Wrong first coord. Try again");
-      continue;
-    }
-    x = regExpIndexX["index"];
-    const parseY = str[1];
-    regExpIndexY = regexpY.match(parseY);
-
-    if (regExpIndexY === null) {
-      alert("Wrong second coord. Try again!");
-      continue;
-    }
-    y = regExpIndexY["index"];
-
     if (numberOfSections > 1) {
       let dir = confirm("OK - horizontal, Cancel - vertical");
       if (!dir) {
@@ -254,33 +225,33 @@ const getRandomShipData = function (numberOfSections) {
   Checks that the feature ship wont be out of boundaries
   Returns true if all ok and false if coordinates are not valid
  */
-  const isShipInField = function ({ x, y, shipDirection, numberOfSections }) {
-    switch (shipDirection) {
-      case "horizontal":
-        if (
-          x > fieldSize - numberOfSections ||
-          x < 0 ||
-          y < 0 ||
-          y > fieldSize - 1
-        ) {
-          return false;
-        }
-        return true;
-  
-      case "vertical":
-        if (
-          x < 0 ||
-          x > fieldSize - 1 ||
-          y < 0 ||
-          y > fieldSize - numberOfSections
-        ) {
-          return false;
-        }
-        return true;
-    }
-  
-    return -1;
-  };
+const isShipInField = function ({ x, y, shipDirection, numberOfSections }) {
+  switch (shipDirection) {
+    case "horizontal":
+      if (
+        x > fieldSize - numberOfSections ||
+        x < 0 ||
+        y < 0 ||
+        y > fieldSize - 1
+      ) {
+        return false;
+      }
+      return true;
+
+    case "vertical":
+      if (
+        x < 0 ||
+        x > fieldSize - 1 ||
+        y < 0 ||
+        y > fieldSize - numberOfSections
+      ) {
+        return false;
+      }
+      return true;
+  }
+
+  return -1;
+};
 
 /* 
   Takes new ship data object {x -> int, y -> int, shiprDirection -> str, numberOfSections -> int}
@@ -297,7 +268,7 @@ const getShipCoordMatrix = function (shipData, field) {
         arr.push([x - 1 + i, y - 1 + j]);
       }
     }
-    console.log('getShipCoordMatrix horizontal return arr: ', arr);
+    console.log("getShipCoordMatrix horizontal return arr: ", arr);
     return arr;
   } else if (shipDirection === "vertical") {
     for (let i = 0; i < 3; i++) {
@@ -305,7 +276,7 @@ const getShipCoordMatrix = function (shipData, field) {
         arr.push([x - 1 + i, y - 1 + j]);
       }
     }
-    console.log('getShipCoordMatrix vertical return arr: ', arr);
+    console.log("getShipCoordMatrix vertical return arr: ", arr);
     return arr;
   }
 
@@ -320,12 +291,12 @@ const getShipCoordMatrix = function (shipData, field) {
 const cutOutOfRangeCoords = function (arr) {
   const siblingCoordsInRange = [];
 
-    for (let i = 0; i < arr.length; i++) {
-        const [x, y] = arr[i];
-        if (x >= 0 && x <= fieldSize - 1 && y >= 0 && y <= fieldSize - 1) {
-          siblingCoordsInRange.push([x, y]);
-        }
-      }
+  for (let i = 0; i < arr.length; i++) {
+    const [x, y] = arr[i];
+    if (x >= 0 && x <= fieldSize - 1 && y >= 0 && y <= fieldSize - 1) {
+      siblingCoordsInRange.push([x, y]);
+    }
+  }
 
   return siblingCoordsInRange;
 };
@@ -420,10 +391,115 @@ const initJs = function (js) {
   return copyJs;
 };
 
+const getCoordIfInputValid = function (str) {
+  const regexpX = "ABCDEFJKLM";
+  const regexpY = "0123456789";
+  let x = null;
+  let regExpIndexX = null;
+  let y = null;
+  let regExpIndexY = null;
+
+
+  if (str === null || str.length != 2) {
+    alert('Wrong input!')
+    return false;
+  }
+  let strX = str[0];
+  strX = strX.toUpperCase();
+  regExpIndexX = regexpX.match(strX);
+
+  if (regExpIndexX === null) {
+    alert("Wrong first coord. Try again");
+    return false;
+  }
+  x = regExpIndexX["index"];
+  const parseY = str[1];
+  regExpIndexY = regexpY.match(parseY);
+
+  if (regExpIndexY === null) {
+    alert("Wrong second coord. Try again!");
+    return false;
+  }
+  y = regExpIndexY["index"];
+  return [x, y];
+};
+
+const getCoordsToFire = function () {
+  let loopTrigger = true;
+
+  while (loopTrigger) {
+    let str = prompt("Enter coords like a4 to fire");
+    if (!getCoordIfInputValid(str)) {
+      alert('Wrong coords. Please try again!');
+      continue;
+    } else {
+      return getCoordIfInputValid(str);    }
+  }
+
+};
+
+const playerHitHandler = function(x, y, player, enemy){
+  if(isChainPossible(x, y, enemy)){
+    player.radar[x][y] = wreckedDeck;
+    enemy.field[x][y] = wreckedDeck;
+    enemy.score -= 1;
+  }else{
+    //was it 1 deck ship, or chain?  If 1 deck - mark coord
+    player.radar[x][y] = deadShipDeck;
+    enemy.field[x][y] = deadShipDeck;
+    enemy.score -= 1;
+  
+  }
+  
+}
+
+const isChainPossible = function(x, y, enemyField){
+  let arr = [];
+
+  arr.push([x - 1, y], [x + 1, y], [x, y -1], [x, y + 1]);
+  arr = cutOutOfRangeCoords(arr);
+  for(let i = 0; i < arr.length; i++){
+    const [coordX, coordY] = arr[i];
+    if(enemyField[coordX][coordY] === aliveDeck){
+      return true;
+    }
+  }
+
+return false;
+}
+
+const playerFireHandler = function (gamers) {
+  let player = JSON.parse(JSON.stringify(gamers.player));
+  let js = JSON.parse(JSON.stringify(gamers.js));
+  let x = null;
+  let y = null;
+
+  [x, y] = getCoordsToFire();
+  if(js[x][y] === aliveDeck){
+    alert('Hit!');
+  }
+  if(isChainPossible(x, y, js.field)){
+    alert('Chain is possible!');
+    continue;
+  }
+
+};
+
+const testFire = function () {
+  player = initPlayer(player);
+  js = initJs(js);
+  js.field = setUpFleetAuto(js.field);
+  player.field = setUpFleetAuto(player.field);
+  let ui = changeSymbolsForPrint(player.radar, player.field);
+  printUI(ui);
+
+  playerFireHandler({ player, js });
+};
+
 const main = function () {
   player = initPlayer(player);
-  console.log(player.score);
   js = initJs(js);
+
   let uiData = changeSymbolsForPrint(player.radar, player.field);
   alert("BEGIN!");
   if (confirm("Do you want to setup fleet manually?")) {
