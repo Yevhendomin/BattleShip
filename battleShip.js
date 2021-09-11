@@ -11,20 +11,31 @@ let player = {
   field: null,
   radar: null,
   score: null,
-};
-let js = {
   memory: {
     missedCoord: [],
     hits: [],
     target: [],
     countOfWreaked: 0,
+    numberOfSections: 0,
     chain: false,
     isDirectionDefined: false,
     direction: "",
   },
+};
+let js = {
   field: null,
   radar: null,
   score: null,
+  memory: {
+    missedCoord: [],
+    hits: [],
+    target: [],
+    countOfWreaked: 0,
+    numberOfSections: 0,
+    chain: false,
+    isDirectionDefined: false,
+    direction: "",
+  },
 };
 
 // Returns new arr[][] -> int filled by aliveDeck.
@@ -70,7 +81,7 @@ const changeSymbolsForPrint = function (radar, userField) {
           radarUI[i][j] = "|_|";
           break;
         case 1:
-          radarUI[i][j] = "|_|";
+          radarUI[i][j] = "|#|";
           break;
         case 2:
           radarUI[i][j] = "|+|";
@@ -145,10 +156,10 @@ const enterCoordByUser = function (numberOfSections) {
   while (loopTrigger) {
     console.log(`Setting up ${numberOfSections} deck ship...`);
     let str = prompt("Enter coords like a4");
-    if(getCoordIfInputValid(str)){
+    if (getCoordIfInputValid(str)) {
       const arr = getCoordIfInputValid(str);
       [x, y] = arr;
-    }else{
+    } else {
       continue;
     }
     if (numberOfSections > 1) {
@@ -399,9 +410,8 @@ const getCoordIfInputValid = function (str) {
   let y = null;
   let regExpIndexY = null;
 
-
   if (str === null || str.length != 2) {
-    alert('Wrong input!')
+    alert("Wrong input!");
     return false;
   }
   let strX = str[0];
@@ -430,59 +440,121 @@ const getCoordsToFire = function () {
   while (loopTrigger) {
     let str = prompt("Enter coords like a4 to fire");
     if (!getCoordIfInputValid(str)) {
-      alert('Wrong coords. Please try again!');
+      alert("Wrong coords. Please try again!");
       continue;
     } else {
-      return getCoordIfInputValid(str);    }
+      return getCoordIfInputValid(str);
+    }
   }
-
 };
 
-const playerHitHandler = function(x, y, player, enemy){
-  if(isChainPossible(x, y, enemy)){
-    player.radar[x][y] = wreckedDeck;
-    enemy.field[x][y] = wreckedDeck;
-    enemy.score -= 1;
-  }else{
-    //was it 1 deck ship, or chain?  If 1 deck - mark coord
-    player.radar[x][y] = deadShipDeck;
-    enemy.field[x][y] = deadShipDeck;
-    enemy.score -= 1;
-  
+const defineDirection = function (arr) {
+  const [firstX, firstY] = arr[0];
+  const [secondX, secondY] = arr[1];
+
+  if (firstX === secondX) {
+    return "vertical";
   }
-  
-}
+  if (firstY === secondY) {
+    return "horizontal";
+  }
+};
 
-const isChainPossible = function(x, y, enemyField){
-  let arr = [];
+const playerHitHandler = function (x, y, player, enemy) {
+  player.radar[y][x] = wreckedDeck;
+  enemy.field[y][x] = wreckedDeck;
+  enemy.score -= 1;
+  player.memory.hits.push([x, y]);
+  player.memory.countOfWreaked += 1;
+  const arr = player.memory.target;
 
-  arr.push([x - 1, y], [x + 1, y], [x, y -1], [x, y + 1]);
-  arr = cutOutOfRangeCoords(arr);
-  for(let i = 0; i < arr.length; i++){
+  if (player.memory.chain) {
+
+    const indx = arr.find(elem => (elem[0] === x && elem[1] === y));
+    player.memory.target.splice(indx, 1);
+  }
+  player.memory.chain = true;
+
+  if (isNearAliveDeck(x, y, enemy.field)) {
+    player.memory.target.push(getCoordsForChain(x, y, enemy.field));
+
+    if (player.memory.hits.length === 2) {
+      player.memory.direction = defineDirection(player.memory.hits);
+      console.log(player.memory.direction);
+      // If we know direction - delete not relevant target coords
+      if (player.memory.direction === "horizontal") {
+        for (let i = 0; i < player.memory.target.length; i++) {
+          if (player.memory.target[i][1] != player.memory.hits[0][1]) {
+            player.memory.target.splice(i, 1);
+          }
+        }
+      } else if (player.memory.direction === "vertical") {
+        for (let i = 0; i < player.memory.target.length; i++) {
+          if (player.memory.target[i][0] != player.memory.hits[0][0]) {
+            player.memory.target.splice(i, 1);
+          }
+        }
+      }
+    }
+  } else {
+    //was it 1 deck ship, or chain?  If 1 deck - mark coord
+    player.radar[y][x] = deadShipDeck;
+    enemy.field[y][x] = deadShipDeck;
+    enemy.score -= 1;
+  }
+
+  return 0;
+};
+
+const isNearAliveDeck = function (x, y, enemyField) {
+  let arr = getCoordsForChain(x, y, enemyField);
+  for (let i = 0; i < arr.length; i++) {
     const [coordX, coordY] = arr[i];
-    if(enemyField[coordX][coordY] === aliveDeck){
+    if (enemyField[coordY][coordX] === aliveDeck) {
       return true;
     }
   }
 
-return false;
-}
+  return false;
+};
+
+const getCoordsForChain = function (x, y, enemyField) {
+  let rawArr = [];
+  const arr = [];
+  rawArr.push([x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]);
+  let newX;
+  let newY;
+
+  rawArr = cutOutOfRangeCoords(rawArr);
+  console.log(rawArr);
+  for (let i = 0; i < rawArr.length; i++) {
+    [newX, newY] = rawArr[i];
+    if (enemyField[newY][newX] != wreckedDeck) {
+      arr.push([newX, newY]);
+    }
+  }
+
+  return arr;
+};
 
 const playerFireHandler = function (gamers) {
-  let player = JSON.parse(JSON.stringify(gamers.player));
-  let js = JSON.parse(JSON.stringify(gamers.js));
+  let gamersCopy = JSON.parse(JSON.stringify(gamers));
+  //let player = JSON.parse(JSON.stringify(gamers.player));
+  //let js = JSON.parse(JSON.stringify(gamers.js));
   let x = null;
   let y = null;
 
-  [x, y] = getCoordsToFire();
-  if(js[x][y] === aliveDeck){
-    alert('Hit!');
-  }
-  if(isChainPossible(x, y, js.field)){
-    alert('Chain is possible!');
-    continue;
-  }
+  do {
+    [x, y] = getCoordsToFire();
 
+    if (gamersCopy.js.field[y][x] === aliveDeck) {
+      playerHitHandler(x, y, gamersCopy.player, gamersCopy.js);
+      let ui = changeSymbolsForPrint(gamersCopy.player.radar, gamersCopy.player.field);
+      printUI(ui);
+    }
+  } while (gamersCopy.player.memory.chain);
+
+  return gamersCopy;
 };
 
 const testFire = function () {
@@ -493,7 +565,8 @@ const testFire = function () {
   let ui = changeSymbolsForPrint(player.radar, player.field);
   printUI(ui);
 
-  playerFireHandler({ player, js });
+  const [x, y] = getCoordsToFire();
+  console.log(x, y);
 };
 
 const main = function () {
@@ -504,14 +577,18 @@ const main = function () {
   alert("BEGIN!");
   if (confirm("Do you want to setup fleet manually?")) {
     player.field = setUpFleetManually(player.field, player.radar);
+    js.field = setUpFleetAuto(js.field);
   } else {
     player.field = setUpFleetAuto(player.field);
+    js.field = setUpFleetAuto(js.field);
   }
 
-  uiData = changeSymbolsForPrint(player.radar, player.field);
+  uiData = changeSymbolsForPrint(js.field, player.field);
   printUI(uiData);
+  let gamers = { player, js };
+  gamers = playerFireHandler(gamers);
 };
 console.log("Loading...");
 setTimeout(function () {
   main();
-}, 5000);
+}, 4000);
