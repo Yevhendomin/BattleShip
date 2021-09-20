@@ -1,16 +1,20 @@
 "use strict";
 
+const readline = require('readline-sync');
+
 const fieldSize = 10;
 const freePlace = 0;
 const aliveDeck = 1;
 const wreckedDeck = 2;
 const deadShipDeck = 3;
-const alreadyShot = 4;
+const alreadyShooted = 4;
 const fleet = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1];
 let player = {
   field: null,
   radar: null,
   score: null,
+  turn: null,
+  status: null,
   memory: {
     missedCoord: [],
     hits: [],
@@ -26,6 +30,8 @@ let js = {
   field: null,
   radar: null,
   score: null,
+  turn: null,
+  status: null,
   memory: {
     missedCoord: [],
     hits: [],
@@ -122,12 +128,12 @@ const printUI = function (uiData) {
   let userRow = "";
   const { radarUI, userUI } = uiData;
   const FieldTitle =
-    "                 ENEMY FIELD                                     YOUR FIELD ";
+    "                      ENEMY FIELD                                     YOUR FIELD ";
 
   const letters =
-    "     A   B   C   D   E   F   J   K   L   M           A   B   C   D   E   F   J   K   L   M";
+    "         A   B   C   D   E   F   J   K   L   M           A   B   C   D   E   F   J   K   L   M";
   const border =
-    "    _______________________________________         _______________________________________";
+    "        _______________________________________         _______________________________________";
 
   console.log(FieldTitle);
   console.log("");
@@ -155,7 +161,7 @@ const enterCoordByUser = function (numberOfSections) {
 
   while (loopTrigger) {
     console.log(`Setting up ${numberOfSections} deck ship...`);
-    let str = prompt("Enter coords like a4");
+    let str = readline.question("Enter coords like a4: \n");
     if (getCoordIfInputValid(str)) {
       const arr = getCoordIfInputValid(str);
       [x, y] = arr;
@@ -163,7 +169,7 @@ const enterCoordByUser = function (numberOfSections) {
       continue;
     }
     if (numberOfSections > 1) {
-      let dir = confirm("OK - horizontal, Cancel - vertical");
+      let dir = readline.question("OK - horizontal, Cancel - vertical: ");
       if (!dir) {
         shipDirection = "vertical";
       }
@@ -192,7 +198,7 @@ const setUpFleetManually = function (field, radar) {
     printUI(ui);
     let shipData = enterCoordByUser(fleet[count]);
     if (!isPlaceValid(shipData, fieldWithNewShips)) {
-      alert("Wrong position! Try again!");
+      console.log("Wrong position! Try again!");
       continue;
     } else {
       fieldWithNewShips = setUpShip(shipData, fieldWithNewShips);
@@ -202,7 +208,7 @@ const setUpFleetManually = function (field, radar) {
       printUI(ui);
     }
   }
-  alert("You are redy to battle!");
+  console.log("You are redy to battle!");
   console.clear();
 
   return fieldWithNewShips;
@@ -279,7 +285,6 @@ const getShipCoordMatrix = function (shipData, field) {
         arr.push([x - 1 + i, y - 1 + j]);
       }
     }
-    console.log("getShipCoordMatrix horizontal return arr: ", arr);
     return arr;
   } else if (shipDirection === "vertical") {
     for (let i = 0; i < 3; i++) {
@@ -287,7 +292,7 @@ const getShipCoordMatrix = function (shipData, field) {
         arr.push([x - 1 + i, y - 1 + j]);
       }
     }
-    console.log("getShipCoordMatrix vertical return arr: ", arr);
+
     return arr;
   }
 
@@ -325,7 +330,6 @@ const isPlaceValid = function (shipData, field) {
   const siblingCoordsInRange = cutOutOfRangeCoords(siblingCoords);
 
   for (let i = 0; i < siblingCoordsInRange.length; i++) {
-    console.log(siblingCoords[i]);
     const [x, y] = siblingCoordsInRange[i];
     if (field[y][x] != freePlace) {
       return false;
@@ -438,9 +442,9 @@ const getCoordsToFire = function () {
   let loopTrigger = true;
 
   while (loopTrigger) {
-    let str = prompt("Enter coords like a4 to fire");
+    let str = readline.question("Enter coords like a4 to fire: \n");
     if (!getCoordIfInputValid(str)) {
-      alert("Wrong coords. Please try again!");
+      console.log("Wrong coords. Please try again!");
       continue;
     } else {
       return getCoordIfInputValid(str);
@@ -460,57 +464,151 @@ const defineDirection = function (arr) {
   }
 };
 
-const playerHitHandler = function (x, y, player, enemy) {
+const isOneDeckShip = function (x, y, enemyField) {
+  let arr = [];
+
+  arr.push([x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]);
+  arr = cutOutOfRangeCoords(arr);
+
+  for (let i = 0; i < arr.length; i++) {
+    const [coordX, coordY] = arr[i];
+    if (
+      enemyField[coordY][coordX] === freePlace ||
+      (enemyField[coordY][coordX] === alreadyShooted &&
+        enemyField[coordY][coordX] != wreckedDeck)
+    ) {
+      continue;
+    } else {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+const killOneDeckShip = function (x, y, player, enemy) {
+  let coordsAroundShip = [];
+  let coordX;
+  let coordY;
+
+  player.radar[y][x] = deadShipDeck;
+  enemy.field[y][x] = deadShipDeck;
+  enemy.score -= 1;
+  player.turn = true;
+
+  for (let i = x - 1; i < x + 2; i++) {
+    for (let j = y - 1; j < y + 2; j++) {
+      if (i === x && j === y) {
+        continue;
+      }
+      coordsAroundShip.push([i, j]);
+    }
+  }
+  coordsAroundShip = cutOutOfRangeCoords(coordsAroundShip);
+  
+
+  // killing ship
+  for (let i = 0; i < coordsAroundShip.length; i++) {
+    [coordX, coordY] = coordsAroundShip[i];
+    player.radar[coordY][coordX] = alreadyShooted;
+    enemy.field[coordY][coordX] = alreadyShooted;
+  }
+  const ui = changeSymbolsForPrint(player.radar, player.field);
+  printUI(ui);
+};
+
+const markWrecked = function (x, y, player, enemy) {
   player.radar[y][x] = wreckedDeck;
   enemy.field[y][x] = wreckedDeck;
-  enemy.score -= 1;
-  player.memory.hits.push([x, y]);
   player.memory.countOfWreaked += 1;
-  const arr = player.memory.target;
-
-  if (player.memory.chain) {
-
-    const indx = arr.find(elem => (elem[0] === x && elem[1] === y));
-    player.memory.target.splice(indx, 1);
-  }
-  player.memory.chain = true;
-
-  if (isNearAliveDeck(x, y, enemy.field)) {
-    player.memory.target.push(getCoordsForChain(x, y, enemy.field));
-
-    if (player.memory.hits.length === 2) {
-      player.memory.direction = defineDirection(player.memory.hits);
-      console.log(player.memory.direction);
-      // If we know direction - delete not relevant target coords
-      if (player.memory.direction === "horizontal") {
-        for (let i = 0; i < player.memory.target.length; i++) {
-          if (player.memory.target[i][1] != player.memory.hits[0][1]) {
-            player.memory.target.splice(i, 1);
-          }
-        }
-      } else if (player.memory.direction === "vertical") {
-        for (let i = 0; i < player.memory.target.length; i++) {
-          if (player.memory.target[i][0] != player.memory.hits[0][0]) {
-            player.memory.target.splice(i, 1);
-          }
-        }
-      }
-    }
-  } else {
-    //was it 1 deck ship, or chain?  If 1 deck - mark coord
-    player.radar[y][x] = deadShipDeck;
-    enemy.field[y][x] = deadShipDeck;
-    enemy.score -= 1;
-  }
+  player.memory.numberOfSections += 1;
 
   return 0;
 };
 
-const isNearAliveDeck = function (x, y, enemyField) {
-  let arr = getCoordsForChain(x, y, enemyField);
+const playerHitHandler = function (x, y, player, enemy) {
+  enemy.score -= 1;
+  player.turn = true;
+  player.memory.hits.push([x, y]);
+
+  if (enemy.score === 0) {
+    player.status = "winner";
+    return false;
+  }
+
+  if (isOneDeckShip(x, y, enemy.field)) {
+    killOneDeckShip(x, y, player, enemy);
+    player.memory.chain = false;
+
+    return true;
+  }
+
+  if (player.memory.chain === false) {
+    console.log("First blood!");
+    markWrecked(x, y, player, enemy);
+    player.memory.target.push(getCoordsForChain(x, y, player, enemy.field));
+    player.memory.chain = true;
+    console.log("Wrecked! Chain: ");
+
+    return true;
+  } else if (player.memory.chain && player.memory.numberOfSections === 1) {
+    console.log("Second hit");
+    markWrecked(x, y, player, enemy);
+    player.memory.direction = defineDirection(player.memory.hits);
+    player.memory.isDirectionDefined = true;
+    player.memory.target = [];
+    player = getChainCoordsByDirection(player);
+    if (isDead(player, enemy)) {
+      player.memory.chain = false;
+      player.memory.target = [];
+      player.memory.hits = [];
+      player.memory.isDirectionDefined = false; //DRY
+      player.memory.direction = "";
+      player.memory.countOfWreaked = 0;
+      player.memory.numberOfSections = 0;
+      console.log("DEAD");
+      return true;
+    } else {
+      console.log("Not dead, chain", player);
+      return true;
+    }
+  } else if (player.memory.chain && player.memory.isDirectionDefined) {
+    console.log("Direction defined!");
+    markWrecked(x, y, player, enemy);
+    player.memory.target = [];
+    player = getChainCoordsByDirection(player);
+    if (isDead(player, enemy)) {
+      player.memory.chain = false;
+      player.memory.target = [];
+      player.memory.hits = [];
+      player.memory.isDirectionDefined = false;
+      player.memory.direction = "";
+      player.memory.countOfWreaked = 0;
+      player.memory.numberOfSections = 0;
+      console.log("DEAD after direction defined", player, enemy);
+      return true;
+    } else {
+      player.memory.chain = true;
+      return true;
+    }
+  }
+};
+
+/* const isNearAliveDeck = function (x, y, enemyField) {
+  let arr = getCoordsForChain(x, y, player, enemyField);
   for (let i = 0; i < arr.length; i++) {
     const [coordX, coordY] = arr[i];
     if (enemyField[coordY][coordX] === aliveDeck) {
+      return true;
+    }
+  }
+}; */
+
+const isChain = function (arr, enemyField) {
+  let x, y;
+  for (let i = 0; i < arr.length; i++) {
+    [x, y] = arr[0][i];
+    if (enemyField[y][x] === aliveDeck) {
       return true;
     }
   }
@@ -518,15 +616,55 @@ const isNearAliveDeck = function (x, y, enemyField) {
   return false;
 };
 
-const getCoordsForChain = function (x, y, enemyField) {
+const getChainCoordsByDirection = function (player) {
+  player.memory.target = [];
+  let rowBoundaryCoords = [];
+  let clearBoundaryCoords = [];
+  if (player.memory.direction === "horizontal") {
+    player.memory.hits.sort((a, b) => a[0] - b[0]);
+  } else if (player.memory.direction === "vertical") {
+    player.memory.hits.sort((a, b) => a[1] - b[1]);
+  }
+
+  const firstX = player.memory.hits[0][0];
+  const firstY = player.memory.hits[0][1];
+  const lastX = player.memory.hits[player.memory.hits.length - 1][0];
+  const lastY = player.memory.hits[player.memory.hits.length - 1][1];
+
+  //for(let i =)
+
+  if (player.memory.direction === "horizontal") {
+    rowBoundaryCoords.push([firstX - 1, firstY], [lastX + 1, lastY]);
+    clearBoundaryCoords = cutOutOfRangeCoords(rowBoundaryCoords);
+  } else if (player.memory.direction === "vertical") {
+    rowBoundaryCoords.push([firstX, firstY - 1], [lastX, lastY + 1]);
+    clearBoundaryCoords = cutOutOfRangeCoords(rowBoundaryCoords);
+  }
+
+  player.memory.target.push(clearBoundaryCoords);
+
+  return player;
+};
+
+const isDead = function (player, enemy) {
+  const enemyField = enemy.field;
+  if (isChain(player.memory.target, enemyField)) {
+    console.log("NOT DEAD");
+    return false;
+  }
+  console.log("DEAD");
+  return true;
+};
+
+const getCoordsForChain = function (x, y, player, enemyField) {
   let rawArr = [];
   const arr = [];
-  rawArr.push([x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]);
   let newX;
   let newY;
 
+  rawArr.push([x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]);
   rawArr = cutOutOfRangeCoords(rawArr);
-  console.log(rawArr);
+
   for (let i = 0; i < rawArr.length; i++) {
     [newX, newY] = rawArr[i];
     if (enemyField[newY][newX] != wreckedDeck) {
@@ -537,8 +675,10 @@ const getCoordsForChain = function (x, y, enemyField) {
   return arr;
 };
 
-const playerFireHandler = function (gamers) {
-  let gamersCopy = JSON.parse(JSON.stringify(gamers));
+const playerFireHandler = function ([player, js]) {
+  const playerCopy = JSON.parse(JSON.stringify(player));
+  const jsCopy = JSON.parse(JSON.stringify(js));
+  //let gamersCopy = JSON.parse(JSON.stringify(gamers));
   //let player = JSON.parse(JSON.stringify(gamers.player));
   //let js = JSON.parse(JSON.stringify(gamers.js));
   let x = null;
@@ -547,14 +687,18 @@ const playerFireHandler = function (gamers) {
   do {
     [x, y] = getCoordsToFire();
 
-    if (gamersCopy.js.field[y][x] === aliveDeck) {
-      playerHitHandler(x, y, gamersCopy.player, gamersCopy.js);
-      let ui = changeSymbolsForPrint(gamersCopy.player.radar, gamersCopy.player.field);
+    if (jsCopy.field[y][x] === aliveDeck) {
+      playerCopy.turn = true;
+      playerCopy.turn = playerHitHandler(x, y, playerCopy, jsCopy);
+      let ui = changeSymbolsForPrint(playerCopy.radar, playerCopy.field);
       printUI(ui);
+    } else {
+      playerCopy.turn = false;
+      console.log("Miss (");
     }
-  } while (gamersCopy.player.memory.chain);
+  } while (playerCopy.turn);
 
-  return gamersCopy;
+  return [playerCopy, jsCopy];
 };
 
 const testFire = function () {
@@ -574,8 +718,8 @@ const main = function () {
   js = initJs(js);
 
   let uiData = changeSymbolsForPrint(player.radar, player.field);
-  alert("BEGIN!");
-  if (confirm("Do you want to setup fleet manually?")) {
+  console.log("BEGIN!");
+  if (readline.question("Do you want to setup fleet manually?")) {
     player.field = setUpFleetManually(player.field, player.radar);
     js.field = setUpFleetAuto(js.field);
   } else {
@@ -585,10 +729,10 @@ const main = function () {
 
   uiData = changeSymbolsForPrint(js.field, player.field);
   printUI(uiData);
-  let gamers = { player, js };
+  let gamers = [player, js];
   gamers = playerFireHandler(gamers);
 };
 console.log("Loading...");
 setTimeout(function () {
   main();
-}, 4000);
+}, 1000);
