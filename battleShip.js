@@ -1,6 +1,6 @@
 "use strict";
 
-const readline = require('readline-sync');
+const readline = require("readline-sync");
 
 const fieldSize = 10;
 const freePlace = 0;
@@ -415,7 +415,7 @@ const getCoordIfInputValid = function (str) {
   let regExpIndexY = null;
 
   if (str === null || str.length != 2) {
-    alert("Wrong input!");
+    console.log("Wrong input!");
     return false;
   }
   let strX = str[0];
@@ -423,7 +423,7 @@ const getCoordIfInputValid = function (str) {
   regExpIndexX = regexpX.match(strX);
 
   if (regExpIndexX === null) {
-    alert("Wrong first coord. Try again");
+    console.log("Wrong first coord. Try again");
     return false;
   }
   x = regExpIndexX["index"];
@@ -431,7 +431,7 @@ const getCoordIfInputValid = function (str) {
   regExpIndexY = regexpY.match(parseY);
 
   if (regExpIndexY === null) {
-    alert("Wrong second coord. Try again!");
+    console.log("Wrong second coord. Try again!");
     return false;
   }
   y = regExpIndexY["index"];
@@ -505,7 +505,6 @@ const killOneDeckShip = function (x, y, player, enemy) {
     }
   }
   coordsAroundShip = cutOutOfRangeCoords(coordsAroundShip);
-  
 
   // killing ship
   for (let i = 0; i < coordsAroundShip.length; i++) {
@@ -526,10 +525,21 @@ const markWrecked = function (x, y, player, enemy) {
   return 0;
 };
 
+const cleanMemory = function (player) {
+  player.memory.chain = false;
+  player.memory.target = [];
+  player.memory.hits = [];
+  player.memory.isDirectionDefined = false;
+  player.memory.direction = "";
+  player.memory.countOfWreaked = 0;
+  player.memory.numberOfSections = 0;
+};
+
 const playerHitHandler = function (x, y, player, enemy) {
   enemy.score -= 1;
   player.turn = true;
   player.memory.hits.push([x, y]);
+  console.log(player.memory.hits);
 
   if (enemy.score === 0) {
     player.status = "winner";
@@ -555,40 +565,36 @@ const playerHitHandler = function (x, y, player, enemy) {
     console.log("Second hit");
     markWrecked(x, y, player, enemy);
     player.memory.direction = defineDirection(player.memory.hits);
+    console.log(player.memory.direction);
     player.memory.isDirectionDefined = true;
     player.memory.target = [];
+
     player = getChainCoordsByDirection(player);
+    console.log(player.memory.target);
     if (isDead(player, enemy)) {
-      player.memory.chain = false;
-      player.memory.target = [];
-      player.memory.hits = [];
-      player.memory.isDirectionDefined = false; //DRY
-      player.memory.direction = "";
-      player.memory.countOfWreaked = 0;
-      player.memory.numberOfSections = 0;
-      console.log("DEAD");
+      killShip(player, enemy);
+      markAroundDead(player, enemy);
+      player = cleanMemory(player);
+
       return true;
     } else {
-      console.log("Not dead, chain", player);
+      console.log("Not dead, chain");
+
       return true;
     }
   } else if (player.memory.chain && player.memory.isDirectionDefined) {
-    console.log("Direction defined!");
     markWrecked(x, y, player, enemy);
     player.memory.target = [];
     player = getChainCoordsByDirection(player);
     if (isDead(player, enemy)) {
-      player.memory.chain = false;
-      player.memory.target = [];
-      player.memory.hits = [];
-      player.memory.isDirectionDefined = false;
-      player.memory.direction = "";
-      player.memory.countOfWreaked = 0;
-      player.memory.numberOfSections = 0;
-      console.log("DEAD after direction defined", player, enemy);
+      killShip(player, enemy);
+      markAroundDead(player, enemy);
+      player = cleanMemory(player);
+
       return true;
     } else {
       player.memory.chain = true;
+
       return true;
     }
   }
@@ -607,8 +613,12 @@ const playerHitHandler = function (x, y, player, enemy) {
 const isChain = function (arr, enemyField) {
   let x, y;
   for (let i = 0; i < arr.length; i++) {
-    [x, y] = arr[0][i];
-    if (enemyField[y][x] === aliveDeck) {
+    [x, y] = arr[i];
+    if (enemyField[y][x] != aliveDeck) {
+      console.log("continue");
+      continue;
+    } else {
+      console.log("return true");
       return true;
     }
   }
@@ -631,8 +641,6 @@ const getChainCoordsByDirection = function (player) {
   const lastX = player.memory.hits[player.memory.hits.length - 1][0];
   const lastY = player.memory.hits[player.memory.hits.length - 1][1];
 
-  //for(let i =)
-
   if (player.memory.direction === "horizontal") {
     rowBoundaryCoords.push([firstX - 1, firstY], [lastX + 1, lastY]);
     clearBoundaryCoords = cutOutOfRangeCoords(rowBoundaryCoords);
@@ -640,20 +648,97 @@ const getChainCoordsByDirection = function (player) {
     rowBoundaryCoords.push([firstX, firstY - 1], [lastX, lastY + 1]);
     clearBoundaryCoords = cutOutOfRangeCoords(rowBoundaryCoords);
   }
-
-  player.memory.target.push(clearBoundaryCoords);
+  player.memory.target = clearBoundaryCoords;
+  console.log("Target:", player.memory.target);
 
   return player;
 };
 
 const isDead = function (player, enemy) {
+  let firstDeckX, firstDeckY;
   const enemyField = enemy.field;
+
+  console.log(isChain(player.memory.target, enemyField));
   if (isChain(player.memory.target, enemyField)) {
     console.log("NOT DEAD");
+
     return false;
   }
   console.log("DEAD");
+  [firstDeckX, firstDeckY] = player.memory.hits[0];
+
+  if (player.memory.direction === "horizontal") {
+    for (
+      let i = firstDeckX;
+      i < player.memory.numberOfSections + firstDeckX + 1;
+      i++
+    ) {
+      if (enemy.field[firstDeckY][i] === aliveDeck) {
+        return false;
+      }
+    }
+  }
+
+  if (player.memory.direction === "vertical") {
+    for (
+      let i = firstDeckY;
+      i < player.memory.numberOfSections + firstDeckY + 1;
+      i++
+    ) {
+      if (enemy.field[i][firstDeckX] === aliveDeck) {
+        return false;
+      }
+    }
+  }
+
   return true;
+};
+
+const killShip = function (player, enemy) {
+  let x, y;
+
+  for (let i = 0; i < player.memory.numberOfSections; i++) {
+    [x, y] = player.memory.hits[i];
+    player.radar[y][x] = deadShipDeck;
+    enemy.field[y][x] = deadShipDeck;
+  }
+};
+
+const markAroundDead = function (player, enemy) {
+  let rowMatrix = [];
+  let cleanMatrix = [];
+
+  if (player.memory.direction === "horizontal") {
+    player.memory.hits.sort((a, b) => a[0] - b[0]);
+  }
+  if (player.memory.direction === "vertical") {
+    player.memory.hits.sort((a, b) => a[1] - b[1]);
+  }
+
+  //const { x, y, shipDirection, numberOfSections } = shipData;
+  const shipData = {
+    x: player.memory.hits[0][0],
+    y: player.memory.hits[0][1],
+    shipDirection: player.memory.direction,
+    numberOfSections: player.memory.numberOfSections
+  }
+  rowMatrix = getShipCoordMatrix(shipData);
+  cleanMatrix = cutOutOfRangeCoords(rowMatrix);
+  
+  for(let i = 0; i < player.memory.numberOfSections; i++){
+    const [x, y] = player.memory.hits[i];
+    for(let j = 0; j < cleanMatrix.length; j++){
+      const [x1, y1] = cleanMatrix[j];
+      if(x1 === x && y === y1){
+        cleanMatrix.splice(j, 1);
+      }
+    }
+  }
+  for(let i = 0; i < cleanMatrix.length; i++){
+    const [x, y] = cleanMatrix[i];
+    player.radar[y][x] = alreadyShooted;
+    enemy.field[y][x] = alreadyShooted;
+  }
 };
 
 const getCoordsForChain = function (x, y, player, enemyField) {
@@ -678,9 +763,6 @@ const getCoordsForChain = function (x, y, player, enemyField) {
 const playerFireHandler = function ([player, js]) {
   const playerCopy = JSON.parse(JSON.stringify(player));
   const jsCopy = JSON.parse(JSON.stringify(js));
-  //let gamersCopy = JSON.parse(JSON.stringify(gamers));
-  //let player = JSON.parse(JSON.stringify(gamers.player));
-  //let js = JSON.parse(JSON.stringify(gamers.js));
   let x = null;
   let y = null;
 
@@ -731,8 +813,10 @@ const main = function () {
   printUI(uiData);
   let gamers = [player, js];
   gamers = playerFireHandler(gamers);
+  uiData = changeSymbolsForPrint(js.field, player.field);
+  printUI(uiData);
 };
 console.log("Loading...");
 setTimeout(function () {
   main();
-}, 1000);
+}, 500);
