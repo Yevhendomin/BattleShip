@@ -557,7 +557,7 @@ const playerHitHandler = function (x, y, player, enemy) {
     if (player.memory.chain === false) {
         console.log('First blood!');
         markWrecked(x, y, player, enemy);
-        player.memory.target.push(getCoordsForChain(x, y, player, enemy.field));
+        player.memory.target = (getCoordsForChain(x, y, player, enemy.field));
         player.memory.chain = true;
         console.log('Wrecked! Chain: ');
 
@@ -749,12 +749,15 @@ const getCoordsForChain = function (x, y, player, enemyField) {
     let newY;
 
     rawArr.push([x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]);
+    console.log(rawArr, "RAW ARR get coords for chain")
     rawArr = cutOutOfRangeCoords(rawArr);
+    console.log(rawArr, "RAW ARR after cut get coords for chain")
 
     for (let i = 0; i < rawArr.length; i++) {
         [newX, newY] = rawArr[i];
         if (enemyField[newY][newX] != wreckedDeck) {
             arr.push([newX, newY]);
+            console.log(arr, 'ARR after push in loop');
         }
     }
 
@@ -786,22 +789,28 @@ const playerFireHandler = function ([player, js]) {
 
 const getRandomCoordsToFire = function (player, js) {
     let x, y;
+    let loopTrigger = true;
+    let target;
+    const randomTarget = Math.floor(
+        Math.random() * js.memory.target.length);
 
     if (js.memory.target.length) {
-        const randomTarget = Math.floor(
-            Math.random() * js.memory.target.length
-        );
-
-        return ([x, y] = js.memory.target[randomTarget]);
+        console.log(js.memory.target, 'js memory target');
+        console.log(randomTarget, 'random index');
+        [x, y] = js.memory.target[randomTarget];
+        console.log(x, y, 'from target');
+        return [x, y];
     } else {
         do {
             x = Math.floor(Math.random() * fieldSize);
-            console.log(x, 'X');
             y = Math.floor(Math.random() * fieldSize);
-            console.log('generated random x, y: ');
-        } while (player.field[y][x] != aliveDeck);
+            target = player.field[y][x];
+            if(target === aliveDeck || target === freePlace){
+                loopTrigger = false
+            }
+        } while (loopTrigger);
     }
-
+    console.log(x, y, 'random');
     return [x, y];
 };
 
@@ -813,7 +822,6 @@ const jsFireHandler = function ([player, js]) {
 
     do {
         [x, y] = getRandomCoordsToFire(playerCopy, jsCopy);
-        console.log(x, y, 'random coords');
         if (playerCopy.field[y][x] === aliveDeck) {
             jsCopy.turn = true;
             jsCopy.turn = playerHitHandler(x, y, jsCopy, playerCopy);
